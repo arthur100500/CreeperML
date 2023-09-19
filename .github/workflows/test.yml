@@ -1,4 +1,4 @@
-name: Build
+name: Test
 
 on:
   pull_request:
@@ -32,4 +32,11 @@ jobs:
           opam install --deps-only --with-test .
           cd CreeperML
           opam exec -- dune build
-          opam exec -- dune fmt
+
+      - name: Run tests
+      - run: |
+          opam exec -- dune runtest --instrument-with bisect_ppx --force
+          opam exec -- bisect-ppx-report send-to Coveralls
+          
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
