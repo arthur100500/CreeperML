@@ -4,7 +4,7 @@ synopsis: "Compiler for MiniML language"
 description: "Student project compiler for self MiniML language"
 maintainer: ["https://github.com/Tozarin"]
 authors: ["Startsev Matvey and Alekseev Aurthur"]
-license: "LGPL-2.1-only"
+license: "LICENSE"
 tags: ["MiniML" "Compiler" "CreeperML" "OCaml"]
 homepage: "https://github.com/Tozarin/CreeperML"
 doc: "https://github.com/Tozarin/CreeperML"
@@ -28,4 +28,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/Tozarin/CreeperML"
+dev-repo: "git+https://github.com/Tozarin/CreeperML.git"
