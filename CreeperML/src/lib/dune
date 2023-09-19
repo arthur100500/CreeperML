@@ -1,2 +1,16 @@
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
+
 (library
- (name CreeperML))
+ (name CreeperML)
+ (public_name CreeperML)
+ ; (modules ast parser lexer)
+ (flags
+  ; menhir generates instances of the "unused rec flag"
+  ; warning
+  (:standard -w -39))
+ (preprocess
+  (pps ppx_expect ppx_deriving.show ppx_compare))
+ (inline_tests))
