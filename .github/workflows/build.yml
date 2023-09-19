@@ -28,7 +28,7 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
       - name: Build project
-      - run: |
+        run: |
           opam install --deps-only --with-test .
           cd CreeperML
           opam exec -- dune build
