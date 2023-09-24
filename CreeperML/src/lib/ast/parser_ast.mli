@@ -7,7 +7,7 @@ module ParserAst : sig
     type binop = string
     type unop = string
     type arg = string
-    type lvalue = lvalue list
+    type lvalue = name list
   
     type letBinding = 
     (* is recursive, name, body *)
