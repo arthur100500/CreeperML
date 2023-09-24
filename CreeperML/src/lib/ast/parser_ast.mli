@@ -2,17 +2,16 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-module ParserAst = struct
+module ParserAst : sig
     type name = string
     type binop = string
     type unop = string
     type arg = string
+    type lvalue = name list
   
     type letBinding = 
     (* is recursive, name, body *)
-    | LetBinding of bool * name * body
-    (* let () = ... *)
-    | LetUnit of body
+    | LetBinding of bool * lvalue * body
   
     (*
       let x = .... (in?)
@@ -29,8 +28,12 @@ module ParserAst = struct
     (* let a = ...; a *)
     | Value of string
     (* fun x y z -> ... *)
-    | Fun of arg list * body
+    | Fun of lvalue list * body
+    (* (a, b, c) *)
+    | Tuple of expr list
+
   
     type program = letBinding list
   end
+  
   

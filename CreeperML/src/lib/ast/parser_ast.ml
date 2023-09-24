@@ -7,10 +7,10 @@ module ParserAst = struct
   type binop = string
   type unop = string
   type arg = string
+  type lvalue = name list
 
   type letBinding = 
-  | LetBinding of bool * name * body
-  | LetUnit of body
+  | LetBinding of bool * lvalue * body
 
   and body = letBinding list * expr
 
@@ -18,7 +18,8 @@ module ParserAst = struct
   | Apply of expr * expr
   | Literal of string
   | Value of string
-  | Fun of arg list * body
+  | Fun of lvalue list * body
+  | Tuple of expr list
 
   type program = letBinding list
 end
