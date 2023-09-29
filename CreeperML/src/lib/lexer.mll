@@ -14,7 +14,9 @@ let float_const = sign? digit* '.' digit+
 let bool_cosnt = "true" | "false"
 let str_const = '"' ['a'-'z' 'A'-'Z' '0'-'9' '_' ' ' '.' ',' ':' ';' '(' ')']* '"'
 
-let name = ['a'-'z' 'A'-'Z' '''] ['a'-'z' 'A'-'Z' ''' '_']*
+let startname = ['a'-'z' 'A'-'Z' ''']
+let tailname = ['a'-'z' 'A'-'Z' ''' '_']
+let name = startname tailname*
 
 let whitespace = [' ' '\t' '\n' '\r']+
 
