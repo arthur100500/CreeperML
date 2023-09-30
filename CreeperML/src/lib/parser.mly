@@ -30,6 +30,12 @@
 %token COMMA
 %token EQUALLY
 
+%token <string>HIGHLVLPREDICATE
+%token <string>MIDHIGHLVLPREDICATE
+%token <string>MIDLVLPREDICATE
+%token <string>LOWMIDLVLPREDICATE
+%token <string>LOWLVLPREDICATE
+
 %token EOF
 
 %type <ParserAst.program> parse
@@ -72,10 +78,19 @@ inner_let_bind :
 expr : 
     | LEFTPARENT; e = expr; RIGHTPARENT { e }
     | e1 = expr; e2 = expr { e_apply e1 e2 }
+    | e1 = expr; p = predicate; e2 = expr { e_apply (e_apply p e1) e2 }
+    | LEFTPARENT; p = predicate; RIGHTPARENT { p }
     | l = literal { e_literal l }
     | n = NAME { e_value n }
     | FUN; ls = nonempty_list(lvalue); ARROW; b = let_body { build_mul_e_fun ls b }
     | LEFTPARENT; es = e_tuple_body; RIGHTPARENT { e_tuple es }
+
+predicate : 
+    | p = HIGHLVLPREDICATE { e_value p }
+    | p = MIDHIGHLVLPREDICATE { e_value p }
+    | p = MIDLVLPREDICATE { e_value p }
+    | p = LOWMIDLVLPREDICATE { e_value p }
+    | p = LOWLVLPREDICATE { e_value p }
 
 e_tuple_body : 
     | hd = expr; COMMA; tl = separated_nonempty_list(COMMA, expr) { hd :: tl }

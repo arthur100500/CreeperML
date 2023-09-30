@@ -18,6 +18,13 @@ let startname = ['a'-'z' 'A'-'Z' ''']
 let tailname = ['a'-'z' 'A'-'Z' ''' '_']
 let name = startname tailname*
 
+let predicate = ['.' '>' '<' '=' '-' '/' '|' '!' '*' '+' '-' ':' '%' '@']
+let hpr = '.' predicate*
+let mhpr = '*' '*' predicate*
+let mpr = ['*' '/' '%'] predicate*
+let lmpr = ['+' '-'] predicate*
+let lpr = predicate*
+
 let whitespace = [' ' '\t' '\n' '\r']+
 
 rule token = parse
@@ -36,6 +43,11 @@ rule token = parse
     | '=' { EQUALLY }
     | ')' { RIGHTPARENT }
     | '(' { LEFTPARENT }
+    | hpr { HIGHLVLPREDICATE (Lexing.lexeme lexbuf) }
+    | mhpr { MIDHIGHLVLPREDICATE (Lexing.lexeme lexbuf) }
+    | mpr { MIDLVLPREDICATE (Lexing.lexeme lexbuf) }
+    | lmpr { LOWMIDLVLPREDICATE (Lexing.lexeme lexbuf) }
+    | lpr { LOWLVLPREDICATE (Lexing.lexeme lexbuf) }
     | name { NAME (Lexing.lexeme lexbuf) }
     | eof { EOF }
     | _ { raise (Failure ("Character not allowed in source text: '" ^ Lexing.lexeme lexbuf ^ "'")) }
