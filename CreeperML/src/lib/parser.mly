@@ -27,6 +27,7 @@
 %token COMMA
 %token EQUALLY
 
+
 %token <string>HIGHLVLPREDICATE
 %token <string>MIDHIGHLVLPREDICATE
 %token <string>MIDLVLPREDICATE
@@ -82,7 +83,7 @@ expr :
     | FUN nonempty_list(lvalue) ARROW let_body { build_mul_e_fun $2 $4 }
     | apply expr { e_apply $1 $2 }
     | IF expr THEN expr ELSE expr { e_if_else $2 $4 $6 }
-    | expr predicate expr { e_apply (e_apply $2 $1) $3 }
+    | expr predicate expr { e_apply $2 $1 |> fun e -> e_apply e $3}
 
 atom :
     | LEFTPARENT expr RIGHTPARENT { $2 }
@@ -94,7 +95,7 @@ apply :
     | apply atom { e_apply $1 $2 }
     | atom { $1 }
 
-predicate :
+%inline predicate :
     | HIGHLVLPREDICATE { e_value $1 }
     | MIDHIGHLVLPREDICATE { e_value $1 }
     | MIDLVLPREDICATE { e_value $1 }
