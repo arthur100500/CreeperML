@@ -44,56 +44,59 @@
 
 %%
 
-parse : p = program; EOF { p }
+parse : program EOF { $1 }
 
 literal : 
-    | n = INT { l_int n }
-    | f = FLOAT { l_float f }
-    | s = STRING { l_string s }
-    | b = BOOL { l_bool b }
-    | LEFTPARENT; RIGHTPARENT { l_unit }
+    | INT { l_int $1 }
+    | FLOAT { l_float $1 }
+    | STRING { l_string $1 }
+    | BOOL { l_bool $1 }
+    | LEFTPARENT RIGHTPARENT { l_unit }
 
 lvalue : 
     | UNDERBAR { lv_any }
-    | LEFTPARENT; RIGHTPARENT { lv_unit }
-    | n = NAME { lv_value n }
-    | LEFTPARENT; ts = lv_tuple_body; RIGHTPARENT { lv_tuple ts }
+    | LEFTPARENT RIGHTPARENT { lv_unit }
+    | NAME { lv_value $1 }
+    | LEFTPARENT lv_tuple_body RIGHTPARENT { lv_tuple $2 }
 
 lv_tuple_body : 
-    | hd = lvalue; COMMA; tl = separated_nonempty_list(COMMA, lvalue) { hd :: tl }
+    | lvalue COMMA separated_nonempty_list(COMMA, lvalue) { $1 :: $3 }
 
 let_binding : 
-    | LET; f = rec_f; lv = lvalue; EQUALLY; b = let_body { let_binding ~rec_flag:f lv b }
+    | LET rec_f lvalue EQUALLY let_body { let_binding ~rec_flag:$2 $3 $5 }
 
 rec_f : 
     | REC { rec_f }
     | { norec_f } 
 
 let_body : 
-    | ls = list(inner_let_bind); e = expr { let_body ls e }
+    | list(inner_let_bind) apply { let_body $1 $2 }
 
 inner_let_bind : 
-    | l = let_binding; IN { l }
+    | let_binding IN { $1 }
 
-expr : 
-    | LEFTPARENT; e = expr; RIGHTPARENT { e }
-    | e1 = expr; e2 = expr { e_apply e1 e2 }
-    | e1 = expr; p = predicate; e2 = expr { e_apply (e_apply p e1) e2 }
-    | LEFTPARENT; p = predicate; RIGHTPARENT { p }
-    | l = literal { e_literal l }
-    | n = NAME { e_value n }
-    | FUN; ls = nonempty_list(lvalue); ARROW; b = let_body { build_mul_e_fun ls b }
-    | LEFTPARENT; es = e_tuple_body; RIGHTPARENT { e_tuple es }
+apply : 
+    | LEFTPARENT apply RIGHTPARENT { $2 }
+    | apply term { e_apply $1 $2 }
+    | term { $1 }
+
+term : 
+    | LEFTPARENT term RIGHTPARENT { $2 }
+    | literal { e_literal $1 }
+    | NAME { e_value $1 }
+    | LEFTPARENT e_tuple_body RIGHTPARENT { e_tuple $2 }
+    | FUN nonempty_list(lvalue) ARROW let_body { build_mul_e_fun $2 $4 }
+    | LEFTPARENT predicate RIGHTPARENT { e_value $2 }
 
 predicate : 
-    | p = HIGHLVLPREDICATE { e_value p }
-    | p = MIDHIGHLVLPREDICATE { e_value p }
-    | p = MIDLVLPREDICATE { e_value p }
-    | p = LOWMIDLVLPREDICATE { e_value p }
-    | p = LOWLVLPREDICATE { e_value p }
+    | HIGHLVLPREDICATE { $1 }
+    | MIDHIGHLVLPREDICATE { $1 }
+    | MIDLVLPREDICATE { $1 }
+    | LOWMIDLVLPREDICATE { $1 }
+    | LOWLVLPREDICATE { $1 }
 
 e_tuple_body : 
-    | hd = expr; COMMA; tl = separated_nonempty_list(COMMA, expr) { hd :: tl }
+    | apply COMMA separated_nonempty_list(COMMA, apply) { $1 :: $3 }
 
 program : 
-    | ls = nonempty_list(let_binding) { ls }
+    | nonempty_list(let_binding) { $1 }
