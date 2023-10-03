@@ -22,20 +22,22 @@
 %token UNDERBAR
 %token LET REC IN
 %token FUN ARROW
+%token IF THEN ELSE
 %token LEFTPARENT RIGHTPARENT
 %token COMMA
 %token EQUALLY
-
-%nonassoc LET
-%nonassoc IN
-%nonassoc FUN
-%left APPLY
 
 %token <string>HIGHLVLPREDICATE
 %token <string>MIDHIGHLVLPREDICATE
 %token <string>MIDLVLPREDICATE
 %token <string>LOWMIDLVLPREDICATE
 %token <string>LOWLVLPREDICATE
+
+%left LOWLVLPREDICATE
+%left LOWMIDLVLPREDICATE
+%left MIDLVLPREDICATE
+%left MIDHIGHLVLPREDICATE
+%left HIGHLVLPREDICATE
 
 %token EOF
 
@@ -79,6 +81,8 @@ expr :
     | atom { $1 }
     | FUN nonempty_list(lvalue) ARROW let_body { build_mul_e_fun $2 $4 }
     | apply expr { e_apply $1 $2 }
+    | IF expr THEN expr ELSE expr { e_if_else $2 $4 $6 }
+    | expr predicate expr { e_apply (e_apply $2 $1) $3 }
 
 atom :
     | LEFTPARENT expr RIGHTPARENT { $2 }
@@ -89,3 +93,10 @@ atom :
 apply :
     | apply atom { e_apply $1 $2 }
     | atom { $1 }
+
+predicate :
+    | HIGHLVLPREDICATE { e_value $1 }
+    | MIDHIGHLVLPREDICATE { e_value $1 }
+    | MIDLVLPREDICATE { e_value $1 }
+    | LOWMIDLVLPREDICATE { e_value $1 }
+    | LOWLVLPREDICATE { e_value $1 }
