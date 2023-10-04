@@ -73,7 +73,7 @@ parse: LET LEFTPARENT NAME COMMA THEN
 ## LEFTPARENT lvalue COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Um, eto, eh! After comma in tuple declaration should be another lvalue! (I.I)
 
 parse: LET LEFTPARENT NAME COMMA NAME UNDERBAR
 ##
@@ -86,7 +86,7 @@ parse: LET LEFTPARENT NAME COMMA NAME UNDERBAR
 ## lvalue
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+You may missed RIGHTPARENT in tuple declaration or may COMMA! (P.P)
 
 parse: LET LEFTPARENT NAME COMMA NAME COMMA THEN
 ##
@@ -98,7 +98,7 @@ parse: LET LEFTPARENT NAME COMMA NAME COMMA THEN
 ## lvalue COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Um, eto, eh! After comma in tuple declaration should be another lvalue! (I.I)
 
 parse: LET NAME UNDERBAR
 ##
@@ -110,7 +110,7 @@ parse: LET NAME UNDERBAR
 ## LET rec_f lvalue
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Ups, between name to be binded and EQUALLY should not be nothing! (\\.\\)
 
 parse: LET NAME EQUALLY UNDERBAR
 ##
@@ -122,7 +122,7 @@ parse: LET NAME EQUALLY UNDERBAR
 ## LET rec_f lvalue EQUALLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Yo, you should declarate function or value after EQUALLY token! (K.K)
 
 parse: LET NAME EQUALLY LEFTPARENT UNDERBAR
 ##
@@ -136,7 +136,8 @@ parse: LET NAME EQUALLY LEFTPARENT UNDERBAR
 ## LEFTPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+So, you either write expression after LEFTPARENT,
+or nothing to declarate unit! (G.G)
 
 parse: LET NAME EQUALLY IF UNDERBAR
 ##
@@ -148,7 +149,7 @@ parse: LET NAME EQUALLY IF UNDERBAR
 ## IF
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+God says, after IF word must be expression expression! (;;.;;)
 
 parse: LET NAME EQUALLY FUN THEN
 ##
@@ -160,7 +161,7 @@ parse: LET NAME EQUALLY FUN THEN
 ## FUN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+And our God says, after FUN token should be name of argument! (Z.Z)
 
 parse: LET NAME EQUALLY FUN NAME ARROW UNDERBAR
 ##
@@ -172,7 +173,7 @@ parse: LET NAME EQUALLY FUN NAME ARROW UNDERBAR
 ## FUN nonempty_list(lvalue) ARROW
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Yo, you should declarate function or value after ARROW token! (K.K)
 
 parse: LET NAME EQUALLY LET NAME EQUALLY BOOL THEN
 ##
@@ -192,7 +193,7 @@ parse: LET NAME EQUALLY LET NAME EQUALLY BOOL THEN
 ## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Before IN you added something that are not part of let-body expression! ($.$)
 
 parse: LET NAME EQUALLY LET NAME EQUALLY BOOL IN UNDERBAR
 ##
@@ -204,7 +205,7 @@ parse: LET NAME EQUALLY LET NAME EQUALLY BOOL IN UNDERBAR
 ## inner_let_bind
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+After IN token must be some expression, I think so! (///.///)
 
 parse: LET NAME EQUALLY FUN NAME THEN
 ##
@@ -217,7 +218,8 @@ parse: LET NAME EQUALLY FUN NAME THEN
 ## lvalue
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+You know, after name of argument in FUN-expression 
+should be another one xor ARROW token! (#.#)
 
 parse: LET NAME EQUALLY IF BOOL RIGHTPARENT
 ##
@@ -240,7 +242,9 @@ parse: LET NAME EQUALLY IF BOOL RIGHTPARENT
 ## In state 47, spurious reduction of production expr -> atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Honestly, this is bullshit (my code, not your). 
+I don't have enough contex, you may placed something
+that are not expression before PREDICATE xor THEN token! (:dead:)
 
 parse: LET NAME EQUALLY IF BOOL THEN UNDERBAR
 ##
@@ -252,7 +256,7 @@ parse: LET NAME EQUALLY IF BOOL THEN UNDERBAR
 ## IF expr THEN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between THEN and your then-code appered something! (@.@)
 
 parse: LET NAME EQUALLY IF BOOL THEN BOOL THEN
 ##
@@ -275,7 +279,9 @@ parse: LET NAME EQUALLY IF BOOL THEN BOOL THEN
 ## In state 47, spurious reduction of production expr -> atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between ELSE and your then-code appered something!
+Xor between PREDICATE and first to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL MIDLVLPREDICATE UNDERBAR
 ##
@@ -287,7 +293,8 @@ parse: LET NAME EQUALLY BOOL MIDLVLPREDICATE UNDERBAR
 ## expr MIDLVLPREDICATE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between PREDICATE and second to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL MIDHIGHLVLPREDICATE UNDERBAR
 ##
@@ -299,7 +306,8 @@ parse: LET NAME EQUALLY BOOL MIDHIGHLVLPREDICATE UNDERBAR
 ## expr MIDHIGHLVLPREDICATE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between PREDICATE and second to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL HIGHLVLPREDICATE UNDERBAR
 ##
@@ -311,7 +319,8 @@ parse: LET NAME EQUALLY BOOL HIGHLVLPREDICATE UNDERBAR
 ## expr HIGHLVLPREDICATE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between PREDICATE and second to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL UNDERBAR
 ##
@@ -324,7 +333,7 @@ parse: LET NAME EQUALLY BOOL UNDERBAR
 ## atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+After atomic expression exist thing that should not exist! (%.%)
 
 parse: LET NAME EQUALLY BOOL LOWMIDLVLPREDICATE UNDERBAR
 ##
@@ -336,7 +345,8 @@ parse: LET NAME EQUALLY BOOL LOWMIDLVLPREDICATE UNDERBAR
 ## expr LOWMIDLVLPREDICATE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between PREDICATE and second to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL LOWLVLPREDICATE UNDERBAR
 ##
@@ -348,7 +358,8 @@ parse: LET NAME EQUALLY BOOL LOWLVLPREDICATE UNDERBAR
 ## expr LOWLVLPREDICATE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Between PREDICATE and second to be applied expression
+appered something, yes! (*.*)
 
 parse: LET NAME EQUALLY BOOL BOOL UNDERBAR
 ##
@@ -362,7 +373,7 @@ parse: LET NAME EQUALLY BOOL BOOL UNDERBAR
 ## apply atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+After atomic expression exist thing that should not exist! (%.%)
 
 parse: LET NAME EQUALLY IF BOOL THEN BOOL ELSE UNDERBAR
 ##
@@ -374,7 +385,7 @@ parse: LET NAME EQUALLY IF BOOL THEN BOOL ELSE UNDERBAR
 ## IF expr THEN expr ELSE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+ELSE token and else-code were squeezed each other thing! (!.!)
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL THEN
 ##
@@ -398,7 +409,9 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL THEN
 ## In state 47, spurious reduction of production expr -> atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+You wanna use tuple or place expression between brackets?
+But you placed bad thing before COMMA or RIGHTPARENT at each case!
+Xor thing be placed after expression and before PREDICATE! (F.F)
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA UNDERBAR
 ##
@@ -410,7 +423,8 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA UNDERBAR
 ## LEFTPARENT expr COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+At expression tuple you plased something that are not
+expression after first COMMA! (M.M)
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL THEN
 ##
@@ -434,7 +448,9 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL THEN
 ## In state 47, spurious reduction of production expr -> atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+At your tuple you placed somthing that should not be place
+after one of expressions! 
+Xor you placed unexpected one between expression and PREDICATE! (A.A)
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL COMMA UNDERBAR
 ##
@@ -446,7 +462,7 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL COMMA UNDERBAR
 ## expr COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+After COMMA in tuple should be expression! (R.R)
 
 parse: LET NAME EQUALLY BOOL THEN
 ##
@@ -467,5 +483,5 @@ parse: LET NAME EQUALLY BOOL THEN
 ## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Your program ends not good xor your last let-statement end not good! (E.e)
 
