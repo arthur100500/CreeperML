@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module Position : sig
   (* position of start and end symbol in code *)
   type loc

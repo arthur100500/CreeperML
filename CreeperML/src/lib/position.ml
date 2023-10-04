@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module Position = struct
   type loc = { start_p : Lexing.position; end_p : Lexing.position }
   type 'a position = { value : 'a; pos : loc }

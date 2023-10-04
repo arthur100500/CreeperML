@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module ParserInterface : sig
   (* parse code from given string *)
   val from_string : string -> (Parser_ast.ParserAst.program, string) result
