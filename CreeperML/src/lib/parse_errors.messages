@@ -1,0 +1,471 @@
+parse: UNDERBAR
+##
+## Ends in an error in state: 0.
+##
+## parse' -> . parse [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+Wow, you caught error that I don't know when it appears! (O.O)
+Pls, send your input to me so that I can add cooler discription!
+
+parse: LET THEN
+##
+## Ends in an error in state: 1.
+##
+## let_binding -> LET . rec_f lvalue EQUALLY let_body [ LET IN EOF ]
+##
+## The known suffix of the stack is as follows:
+## LET
+##
+
+After LET token and before REC/name-that-binding token
+appered something that I can't recognize (>.<)
+
+parse: LET REC THEN
+##
+## Ends in an error in state: 3.
+##
+## let_binding -> LET rec_f . lvalue EQUALLY let_body [ LET IN EOF ]
+##
+## The known suffix of the stack is as follows:
+## LET rec_f
+##
+
+After LET/REC token and before name-that-binding token
+appered something that I can't recognize (>.<)
+
+parse: LET LEFTPARENT THEN
+##
+## Ends in an error in state: 6.
+##
+## lvalue -> LEFTPARENT . lvalue COMMA separated_nonempty_list(COMMA,lvalue) RIGHTPARENT [ UNDERBAR RIGHTPARENT NAME LEFTPARENT EQUALLY COMMA ARROW ]
+## unit -> LEFTPARENT . RIGHTPARENT [ UNDERBAR RIGHTPARENT NAME LEFTPARENT EQUALLY COMMA ARROW ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT
+##
+
+Oh, boy, you put some nonsence between brackets,
+when you named your value of function (Y.Y)
+
+parse: LET LEFTPARENT NAME UNDERBAR
+##
+## Ends in an error in state: 9.
+##
+## lvalue -> LEFTPARENT lvalue . COMMA separated_nonempty_list(COMMA,lvalue) RIGHTPARENT [ UNDERBAR RIGHTPARENT NAME LEFTPARENT EQUALLY COMMA ARROW ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT lvalue
+##
+
+Um, you missed comma when declaring tuple to be named (I.I)
+
+parse: LET LEFTPARENT NAME COMMA THEN
+##
+## Ends in an error in state: 10.
+##
+## lvalue -> LEFTPARENT lvalue COMMA . separated_nonempty_list(COMMA,lvalue) RIGHTPARENT [ UNDERBAR RIGHTPARENT NAME LEFTPARENT EQUALLY COMMA ARROW ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT lvalue COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET LEFTPARENT NAME COMMA NAME UNDERBAR
+##
+## Ends in an error in state: 13.
+##
+## separated_nonempty_list(COMMA,lvalue) -> lvalue . [ RIGHTPARENT ]
+## separated_nonempty_list(COMMA,lvalue) -> lvalue . COMMA separated_nonempty_list(COMMA,lvalue) [ RIGHTPARENT ]
+##
+## The known suffix of the stack is as follows:
+## lvalue
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET LEFTPARENT NAME COMMA NAME COMMA THEN
+##
+## Ends in an error in state: 14.
+##
+## separated_nonempty_list(COMMA,lvalue) -> lvalue COMMA . separated_nonempty_list(COMMA,lvalue) [ RIGHTPARENT ]
+##
+## The known suffix of the stack is as follows:
+## lvalue COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME UNDERBAR
+##
+## Ends in an error in state: 16.
+##
+## let_binding -> LET rec_f lvalue . EQUALLY let_body [ LET IN EOF ]
+##
+## The known suffix of the stack is as follows:
+## LET rec_f lvalue
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY UNDERBAR
+##
+## Ends in an error in state: 17.
+##
+## let_binding -> LET rec_f lvalue EQUALLY . let_body [ LET IN EOF ]
+##
+## The known suffix of the stack is as follows:
+## LET rec_f lvalue EQUALLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LEFTPARENT UNDERBAR
+##
+## Ends in an error in state: 21.
+##
+## atom -> LEFTPARENT . expr RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+## atom -> LEFTPARENT . expr COMMA separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+## unit -> LEFTPARENT . RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY IF UNDERBAR
+##
+## Ends in an error in state: 23.
+##
+## expr -> IF . expr THEN expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IF
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY FUN THEN
+##
+## Ends in an error in state: 24.
+##
+## expr -> FUN . nonempty_list(lvalue) ARROW let_body [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## FUN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY FUN NAME ARROW UNDERBAR
+##
+## Ends in an error in state: 26.
+##
+## expr -> FUN nonempty_list(lvalue) ARROW . let_body [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## FUN nonempty_list(lvalue) ARROW
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LET NAME EQUALLY BOOL THEN
+##
+## Ends in an error in state: 28.
+##
+## inner_let_bind -> let_binding . IN [ STRING NAME LET LEFTPARENT INT IF FUN FLOAT BOOL ]
+##
+## The known suffix of the stack is as follows:
+## let_binding
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+## In state 65, spurious reduction of production let_body -> list(inner_let_bind) expr
+## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LET NAME EQUALLY BOOL IN UNDERBAR
+##
+## Ends in an error in state: 30.
+##
+## list(inner_let_bind) -> inner_let_bind . list(inner_let_bind) [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
+##
+## The known suffix of the stack is as follows:
+## inner_let_bind
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY FUN NAME THEN
+##
+## Ends in an error in state: 32.
+##
+## nonempty_list(lvalue) -> lvalue . [ ARROW ]
+## nonempty_list(lvalue) -> lvalue . nonempty_list(lvalue) [ ARROW ]
+##
+## The known suffix of the stack is as follows:
+## lvalue
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY IF BOOL RIGHTPARENT
+##
+## Ends in an error in state: 38.
+##
+## expr -> IF expr . THEN expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+## expr -> expr . HIGHLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
+## expr -> expr . MIDHIGHLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
+## expr -> expr . MIDLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
+## expr -> expr . LOWMIDLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
+## expr -> expr . LOWLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
+##
+## The known suffix of the stack is as follows:
+## IF expr
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY IF BOOL THEN UNDERBAR
+##
+## Ends in an error in state: 39.
+##
+## expr -> IF expr THEN . expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IF expr THEN
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY IF BOOL THEN BOOL THEN
+##
+## Ends in an error in state: 40.
+##
+## expr -> IF expr THEN expr . ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+## expr -> expr . HIGHLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
+## expr -> expr . MIDHIGHLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
+## expr -> expr . MIDLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
+## expr -> expr . LOWMIDLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
+## expr -> expr . LOWLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
+##
+## The known suffix of the stack is as follows:
+## IF expr THEN expr
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL MIDLVLPREDICATE UNDERBAR
+##
+## Ends in an error in state: 41.
+##
+## expr -> expr MIDLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## expr MIDLVLPREDICATE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL MIDHIGHLVLPREDICATE UNDERBAR
+##
+## Ends in an error in state: 43.
+##
+## expr -> expr MIDHIGHLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## expr MIDHIGHLVLPREDICATE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL HIGHLVLPREDICATE UNDERBAR
+##
+## Ends in an error in state: 45.
+##
+## expr -> expr HIGHLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## expr HIGHLVLPREDICATE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL UNDERBAR
+##
+## Ends in an error in state: 47.
+##
+## apply -> atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
+## expr -> atom . [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL LOWMIDLVLPREDICATE UNDERBAR
+##
+## Ends in an error in state: 50.
+##
+## expr -> expr LOWMIDLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## expr LOWMIDLVLPREDICATE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL LOWLVLPREDICATE UNDERBAR
+##
+## Ends in an error in state: 52.
+##
+## expr -> expr LOWLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## expr LOWLVLPREDICATE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL BOOL UNDERBAR
+##
+## Ends in an error in state: 54.
+##
+## apply -> apply atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
+## apply -> atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
+## expr -> atom . [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## apply atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY IF BOOL THEN BOOL ELSE UNDERBAR
+##
+## Ends in an error in state: 55.
+##
+## expr -> IF expr THEN expr ELSE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## IF expr THEN expr ELSE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LEFTPARENT BOOL THEN
+##
+## Ends in an error in state: 57.
+##
+## atom -> LEFTPARENT expr . RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+## atom -> LEFTPARENT expr . COMMA separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+## expr -> expr . HIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . MIDHIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . MIDLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . LOWMIDLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . LOWLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT expr
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA UNDERBAR
+##
+## Ends in an error in state: 59.
+##
+## atom -> LEFTPARENT expr COMMA . separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
+##
+## The known suffix of the stack is as follows:
+## LEFTPARENT expr COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL THEN
+##
+## Ends in an error in state: 62.
+##
+## expr -> expr . HIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . MIDHIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . MIDLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . LOWMIDLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## expr -> expr . LOWLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
+## separated_nonempty_list(COMMA,expr) -> expr . [ RIGHTPARENT ]
+## separated_nonempty_list(COMMA,expr) -> expr . COMMA separated_nonempty_list(COMMA,expr) [ RIGHTPARENT ]
+##
+## The known suffix of the stack is as follows:
+## expr
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL COMMA UNDERBAR
+##
+## Ends in an error in state: 63.
+##
+## separated_nonempty_list(COMMA,expr) -> expr COMMA . separated_nonempty_list(COMMA,expr) [ RIGHTPARENT ]
+##
+## The known suffix of the stack is as follows:
+## expr COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY BOOL THEN
+##
+## Ends in an error in state: 71.
+##
+## nonempty_list(let_binding) -> let_binding . [ EOF ]
+## nonempty_list(let_binding) -> let_binding . nonempty_list(let_binding) [ EOF ]
+##
+## The known suffix of the stack is as follows:
+## let_binding
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 47, spurious reduction of production expr -> atom
+## In state 65, spurious reduction of production let_body -> list(inner_let_bind) expr
+## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+

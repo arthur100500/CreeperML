@@ -26,7 +26,10 @@ module ParserAst = struct
     | EValue of name
     | EFun of lvalue * let_body
     | ETuple of expr list
+    | EIfElse of if_else_body
   [@@deriving show { with_path = false }]
+
+  and if_else_body = { cond : expr; t_body : expr; f_body : expr }
 
   type program = let_binding list [@@deriving show { with_path = false }]
 end
@@ -50,6 +53,7 @@ module ParserAstUtils = struct
   let e_value n = EValue n
   let e_fun l b = EFun (l, b)
   let e_tuple es = ETuple es
+  let e_if_else c t f = EIfElse { cond = c; t_body = t; f_body = f }
 
   let let_binding ?(rec_flag = norec_f) lv body =
     { rec_f = rec_flag; l_v = lv; body }

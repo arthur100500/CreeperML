@@ -1,16 +1,22 @@
 (ocamllex lexer)
 
 (menhir
+ (flags --table)
  (modules parser))
+
+(rule
+ (deps parse_errors.messages parser.mly)
+ (targets parser_messages.ml)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run menhir --compile-errors %{deps}))))
 
 (library
  (name CreeperML)
  (public_name CreeperML)
- ; (modules ast parser lexer)
- (flags
-  ; menhir generates instances of the "unused rec flag"
-  ; warning
-  (:standard -w -39))
+ (libraries menhirLib)
+ (flags :standard -color always -safe-string -warn-error -a+8 -w -50)
  (preprocess
   (pps ppx_expect ppx_deriving.show ppx_compare))
  (inline_tests))

@@ -46,11 +46,16 @@ module ParserAst : sig
     (* a *)
     | EValue of name
     (* fun x -> fun y -> ...
-       fun x y -> represented as EFun x {[], EFun y ...} *)
+       fun x y -> ... represented as EFun x {[], EFun y ...} *)
     | EFun of lvalue * let_body
     (* (a, b, c)
        invariant >= 2 *)
     | ETuple of expr list
+    (* if else statement *)
+    | EIfElse of if_else_body
+
+  (* if condition then true_body else else_body *)
+  and if_else_body = { cond : expr; t_body : expr; f_body : expr }
 
   type program = let_binding list
 
@@ -91,6 +96,7 @@ module ParserAstUtils : sig
   val e_value : name -> expr
   val e_fun : lvalue -> let_body -> expr
   val e_tuple : expr list -> expr
+  val e_if_else : expr -> expr -> expr -> expr
 
   (* lets *)
   val let_binding : ?rec_flag:rec_flag -> lvalue -> let_body -> let_binding

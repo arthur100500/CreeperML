@@ -38,6 +38,9 @@ rule token = parse
     | "in" { IN }
     | "let" { LET }
     | "fun" { FUN }
+    | "if" { IF }
+    | "then" { THEN }
+    | "else" { ELSE }
     | "->" { ARROW }
     | ',' { COMMA }
     | '=' { EQUALLY }

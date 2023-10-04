@@ -27,7 +27,6 @@
 %token COMMA
 %token EQUALLY
 
-
 %token <string>HIGHLVLPREDICATE
 %token <string>MIDHIGHLVLPREDICATE
 %token <string>MIDLVLPREDICATE
