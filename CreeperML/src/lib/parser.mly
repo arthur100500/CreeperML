@@ -7,11 +7,14 @@
     open ParserAstUtils
 
     let build_mul_e_fun start_p end_p ls b =
-        match List.rev ls with
-        | [] -> failwith "never happen case of nonempty_list"
-        | [ hd ] -> e_fun start_p end_p hd b
-        | hd :: tl ->
-            List.fold_left (fun acc l -> let_body start_p end_p [] acc |> e_fun start_p end_p l) (e_fun start_p end_p hd b) tl
+      match List.rev ls with
+      | [] -> failwith "never happen case of nonempty_list"
+      | [ hd ] -> e_fun start_p end_p hd b
+      | hd :: tl ->
+          List.fold_left
+            (fun acc l -> let_body start_p end_p [] acc |> e_fun start_p end_p l)
+            (e_fun start_p end_p hd b) tl
+
 %}
 
 %token <int> INT
