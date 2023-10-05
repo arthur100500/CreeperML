@@ -2,7 +2,8 @@
 
 (menhir
  (flags --table)
- (modules parser))
+ (modules parser)
+ (infer false))
 
 (rule
  (deps parse_errors.messages parser.mly)

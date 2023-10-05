@@ -3,8 +3,22 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 module Position = struct
-  type loc = { start_p : Lexing.position; end_p : Lexing.position }
+  type t = Lexing.position
+  type loc = { start_p : t; end_p : t }
+
+  let show_lex_position : t -> string =
+   fun { pos_fname = fname; pos_lnum = lnum; pos_bol = bol; pos_cnum = cnum } ->
+    Printf.sprintf "[%s: %d %d %d]" fname lnum bol cnum
+
+  let show_loc loc =
+    let start_p = show_lex_position loc.start_p in
+    let end_p = show_lex_position loc.end_p in
+    Printf.sprintf "{start_p: %s; end_p: %s}" start_p end_p
+
+  let pp_loc fmt loc = show_loc loc |> Format.pp_print_string fmt
+
   type 'a position = { value : 'a; pos : loc }
+  [@@deriving show { with_path = false }]
 
   let value { value = v; pos = _ } = v
   let position { value = _; pos = p } = p

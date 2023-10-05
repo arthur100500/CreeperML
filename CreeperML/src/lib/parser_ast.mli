@@ -3,6 +3,8 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 module ParserAst : sig
+  open Position.Position
+
   type name = string
   type rec_flag = Rec | NoRec
 
@@ -15,7 +17,9 @@ module ParserAst : sig
     | LvValue of name
     (* (a, b)
        invariant >= 2 *)
-    | LvTuple of lvalue list
+    | LvTuple of loc_lvalue list
+
+  and loc_lvalue = lvalue position
 
   type literal =
     | LInt of int
@@ -24,40 +28,44 @@ module ParserAst : sig
     | LBool of bool
     | LUnit
 
+  and loc_literal = literal position
+
   type let_binding = {
     (* is recursive, name, body *)
     rec_f : rec_flag;
-    l_v : lvalue;
-    body : let_body;
+    l_v : loc_lvalue;
+    body : loc_let_body;
   }
+
+  and loc_let_binding = let_binding position
 
   (*
       let x = .... (in?)
       let x = .... (in?)
       expr  
     *)
-  and let_body = { lets : let_binding list; expr : expr }
+  and let_body = { lets : loc_let_binding list; expr : loc_expr }
+  and loc_let_body = let_body position
 
   and expr =
     (* e e *)
-    | EApply of expr * expr
+    | EApply of loc_expr * loc_expr
     (* "among" or 90 *)
-    | ELiteral of literal
+    | ELiteral of loc_literal
     (* a *)
     | EValue of name
     (* fun x -> fun y -> ...
        fun x y -> ... represented as EFun x {[], EFun y ...} *)
-    | EFun of lvalue * let_body
+    | EFun of { lvalue : loc_lvalue; body : loc_let_body }
     (* (a, b, c)
        invariant >= 2 *)
-    | ETuple of expr list
+    | ETuple of loc_expr list
     (* if else statement *)
-    | EIfElse of if_else_body
+    | EIfElse of { cond : loc_expr; t_body : loc_expr; f_body : loc_expr }
 
-  (* if condition then true_body else else_body *)
-  and if_else_body = { cond : expr; t_body : expr; f_body : expr }
+  and loc_expr = expr position
 
-  type program = let_binding list
+  type program = loc_let_binding list
 
   (* shows *)
   val show_name : name -> string
@@ -68,37 +76,50 @@ module ParserAst : sig
   val show_let_body : let_body -> string
   val show_expr : expr -> string
   val show_program : program -> string
+  val show_loc_lvalue : loc_lvalue -> string
+  val show_loc_literal : loc_literal -> string
+  val show_loc_let_binding : loc_let_binding -> string
+  val show_loc_let_body : loc_let_body -> string
+  val show_loc_expr : loc_expr -> string
 end
 
 module ParserAstUtils : sig
   open ParserAst
+  open Position.Position
 
   (* recursive flags *)
   val rec_f : rec_flag
   val norec_f : rec_flag
 
   (* left values *)
-  val lv_any : lvalue
-  val lv_unit : lvalue
-  val lv_value : string -> lvalue
-  val lv_tuple : lvalue list -> lvalue
+  val lv_any : t -> t -> loc_lvalue
+  val lv_unit : t -> t -> loc_lvalue
+  val lv_value : t -> t -> name -> loc_lvalue
+  val lv_tuple : t -> t -> loc_lvalue list -> loc_lvalue
 
   (* literals *)
-  val l_int : int -> literal
-  val l_float : float -> literal
-  val l_string : string -> literal
-  val l_bool : bool -> literal
-  val l_unit : literal
+  val l_int : t -> t -> int -> loc_literal
+  val l_float : t -> t -> float -> loc_literal
+  val l_string : t -> t -> string -> loc_literal
+  val l_bool : t -> t -> bool -> loc_literal
+  val l_unit : t -> t -> loc_literal
 
   (* expressions *)
-  val e_apply : expr -> expr -> expr
-  val e_literal : literal -> expr
-  val e_value : name -> expr
-  val e_fun : lvalue -> let_body -> expr
-  val e_tuple : expr list -> expr
-  val e_if_else : expr -> expr -> expr -> expr
+  val e_apply : t -> t -> loc_expr -> loc_expr -> loc_expr
+  val e_literal : t -> t -> loc_literal -> loc_expr
+  val e_value : t -> t -> name -> loc_expr
+  val e_fun : t -> t -> loc_lvalue -> loc_let_body -> loc_expr
+  val e_tuple : t -> t -> loc_expr list -> loc_expr
+  val e_if_else : t -> t -> loc_expr -> loc_expr -> loc_expr -> loc_expr
 
   (* lets *)
-  val let_binding : ?rec_flag:rec_flag -> lvalue -> let_body -> let_binding
-  val let_body : let_binding list -> expr -> let_body
+  val let_binding :
+    ?rec_flag:rec_flag ->
+    t ->
+    t ->
+    loc_lvalue ->
+    loc_let_body ->
+    loc_let_binding
+
+  val let_body : t -> t -> loc_let_binding list -> loc_expr -> loc_let_body
 end
