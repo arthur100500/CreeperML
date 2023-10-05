@@ -29,7 +29,6 @@ jobs:
 
       - name: Build project
         run: |
-          cd src
           opam install --deps-only --with-test .
           opam exec -- dune build
 
