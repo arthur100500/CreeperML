@@ -74,6 +74,9 @@ module ParserAstUtils = struct
   let let_body start_p end_p ls e =
     { lets = ls; expr = e } |> with_position start_p end_p
 
+  let body { rec_f = _; l_v = _; body = b } = b
+  let expr_b { lets = _; expr = e } = e
+
   let build_mul_e_fun start_p end_p hd tl b =
     match List.rev tl with
     | [] -> e_fun start_p end_p hd b

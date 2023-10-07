@@ -9,7 +9,7 @@ module InferType : sig
   type lvl = int
 
   (* minimal type of expression *)
-  and ground_typ = TInt | TString | TBool | TUnit
+  and ground_typ = TInt | TString | TBool | TUnit | TFloat
 
   (* complex type *)
   type t =
@@ -29,6 +29,9 @@ module InferType : sig
 
   (* expresion with his type *)
   type 'a typed = { value : 'a; typ : t }
+
+  (* environment *)
+  type env = (name * typ) list
 
   (* shows *)
   val show_lvl : lvl -> string
@@ -75,6 +78,15 @@ module InferTypeUtils : sig
   val typ : 'a typed -> t
   val lvl_value : 'a lvls -> 'a
   val with_lvls : lvl -> lvl -> 'a -> 'a lvls
+
+  (* find in env *)
+  val assoc : 'a -> ('a * 'b) list -> 'b
+
+  (* get type of const *)
+  val convert_const : literal Position.Position.position -> t
+
+  (* simplifies links *)
+  val repr : typ -> typ
 end
 
 module TypeAst : sig

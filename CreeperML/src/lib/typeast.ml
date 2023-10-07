@@ -7,7 +7,7 @@ module InferType = struct
 
   type lvl = int
 
-  and ground_typ = TInt | TString | TBool | TUnit
+  and ground_typ = TInt | TString | TBool | TUnit | TFloat
   [@@deriving show { with_path = false }]
 
   type t =
@@ -22,9 +22,12 @@ module InferType = struct
 
   type 'a typed = { value : 'a; typ : t }
   [@@deriving show { with_path = false }]
+
+  type env = (name * typ) list
 end
 
 module InferTypeUtils = struct
+  open Parser_ast.ParserAst
   open InferType
 
   let t_int = TInt
@@ -42,6 +45,25 @@ module InferTypeUtils = struct
   let typ { value = _; typ = t } = t
   let lvl_value { value = v; old_lvl = _; new_lvl = _ } = v
   let with_lvls old_l new_l v = { value = v; old_lvl = old_l; new_lvl = new_l }
+  let assoc = List.assoc
+
+  let convert_const l =
+    let l = Position.Position.value l in
+    (match l with
+    | LInt _ -> TInt
+    | LString _ -> TString
+    | LBool _ -> TBool
+    | LFloat _ -> TFloat
+    | LUnit -> TUnit)
+    |> t_ground
+
+  let rec repr t =
+    match lvl_value t with
+    | TVar ({ contents = Link t } as tvar) ->
+        let t = repr t in
+        tvar := Link t;
+        t
+    | _ -> t
 end
 
 module TypeAst = struct

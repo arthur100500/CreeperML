@@ -137,6 +137,8 @@ module ParserAstUtils : sig
     loc_let_binding
 
   val let_body : t -> t -> loc_let_binding list -> loc_expr -> loc_let_body
+  val body : let_binding -> loc_let_body
+  val expr_b : let_body -> loc_expr
 
   (* from lvalue, list of lvalues and body build chain of EFun-s*)
   val build_mul_e_fun :
