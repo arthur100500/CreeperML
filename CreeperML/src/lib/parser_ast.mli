@@ -81,6 +81,21 @@ module ParserAst : sig
   val show_loc_let_binding : loc_let_binding -> string
   val show_loc_let_body : loc_let_body -> string
   val show_loc_expr : loc_expr -> string
+
+  (* pps *)
+  val pp_name : Format.formatter -> name -> unit
+  val pp_rec_flag : Format.formatter -> rec_flag -> unit
+  val pp_lvalue : Format.formatter -> lvalue -> unit
+  val pp_literal : Format.formatter -> literal -> unit
+  val pp_let_binding : Format.formatter -> let_binding -> unit
+  val pp_let_body : Format.formatter -> let_body -> unit
+  val pp_expr : Format.formatter -> expr -> unit
+  val pp_program : Format.formatter -> program -> unit
+  val pp_loc_lvalue : Format.formatter -> loc_lvalue -> unit
+  val pp_loc_literal : Format.formatter -> loc_literal -> unit
+  val pp_loc_let_binding : Format.formatter -> loc_let_binding -> unit
+  val pp_loc_let_body : Format.formatter -> loc_let_body -> unit
+  val pp_loc_expr : Format.formatter -> loc_expr -> unit
 end
 
 module ParserAstUtils : sig
