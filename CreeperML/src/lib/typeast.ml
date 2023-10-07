@@ -11,16 +11,17 @@ module InferType = struct
   [@@deriving show { with_path = false }]
 
   type t =
-    | TArrow of t * t
-    | TTuple of t list
+    | TArrow of typ * typ
+    | TTuple of typ list
     | TGround of ground_typ
     | TVar of tv ref
 
-  and tv = Unbound of name * lvl | Link of t
-  and 'a typed = { value : 'a; typ : t } [@@deriving show { with_path = false }]
-
-  type 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
+  and tv = Unbound of name * lvl | Link of typ
+  and 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
   and typ = t lvls [@@deriving show { with_path = false }]
+
+  type 'a typed = { value : 'a; typ : t }
+  [@@deriving show { with_path = false }]
 end
 
 module InferTypeUtils = struct

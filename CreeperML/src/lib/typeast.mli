@@ -13,22 +13,22 @@ module InferType : sig
 
   (* complex type *)
   type t =
-    | TArrow of t * t
-    | TTuple of t list
+    | TArrow of typ * typ
+    | TTuple of typ list
     | TGround of ground_typ
     | TVar of tv ref
 
   (* subtype for infer *)
-  and tv = Unbound of name * lvl | Link of t
-
-  (* expresion with his type *)
-  and 'a typed = { value : 'a; typ : t }
+  and tv = Unbound of name * lvl | Link of typ
 
   (* levels of type nesting (for infer) *)
-  type 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
+  and 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
 
   (* main type for infering *)
   and typ = t lvls
+
+  (* expresion with his type *)
+  type 'a typed = { value : 'a; typ : t }
 
   (* shows *)
   val show_lvl : lvl -> string
@@ -64,12 +64,12 @@ module InferTypeUtils : sig
   val t_string : ground_typ
   val t_bool : ground_typ
   val t_unit : ground_typ
-  val t_arrow : t -> t -> t
-  val t_tuple : t list -> t
+  val t_arrow : typ -> typ -> t
+  val t_tuple : typ list -> t
   val t_ground : ground_typ -> t
   val t_var : tv ref -> t
   val tv_unbound : name -> lvl -> tv
-  val tv_link : t -> tv
+  val tv_link : typ -> tv
   val typed_value : 'a typed -> 'a
   val with_typ : t -> 'a -> 'a typed
   val typ : 'a typed -> t
