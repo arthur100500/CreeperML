@@ -200,8 +200,8 @@ module InferUtils = struct
           return t
       | TArrow (l_t, r_t) when t.new_lvl > !curr_lvl ->
           let l_t, r_t = (repr l_t, repr r_t) in
-          let _ = helper l_t in
-          let _ = helper r_t in
+          let* _ = helper l_t in
+          let* _ = helper r_t in
           let l = max (get_lvl l_t) (get_lvl r_t) in
           t.new_lvl <- l;
           t.old_lvl <- l;
@@ -212,6 +212,7 @@ module InferUtils = struct
               (fun acc t ->
                 let t = repr t in
                 let _ = helper t in
+                (* maybe let* *)
                 get_lvl t |> max acc)
               0 ts
           in
@@ -253,7 +254,6 @@ module Infer = struct
   open Parser_ast.ParserAst
   open Parser_ast.ParserAstUtils
   open InferUtils
-  open Typeast.InferType
   open Typeast.InferTypeUtils
   open Monad.Result
   open Position.Position
@@ -291,11 +291,11 @@ module Infer = struct
           let* t_fun = helper env l in
           let* t_arg = helper env r in
           let t_res = new_var () in
-          let _ = new_arrow t_arg t_res |> unify t_fun in
+          let* _ = new_arrow t_arg t_res |> unify t_fun in
           return t_res (* also aslo *)
       | EIfElse { cond = c; t_body = t; f_body = f } ->
           let* t_c = helper env c in
-          let _ =
+          let* _ =
             t_bool |> t_ground |> with_lvls !curr_lvl !curr_lvl |> unify t_c
           in
           let* t_t = helper env t in
