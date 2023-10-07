@@ -73,4 +73,22 @@ module ParserAstUtils = struct
 
   let let_body start_p end_p ls e =
     { lets = ls; expr = e } |> with_position start_p end_p
+
+  let build_mul_e_fun start_p end_p hd tl b =
+    match List.rev tl with
+    | [] -> e_fun start_p end_p hd b
+    | l :: tl ->
+        let e_body_fun arg body =
+          let_body start_p end_p [] body |> e_fun start_p end_p arg
+        in
+        List.fold_left
+          (fun acc l -> e_body_fun l acc)
+          (e_fun start_p end_p l b) tl
+        |> e_body_fun hd
+
+  let build_let_body start_p end_p lvs b =
+    match lvs with
+    | [] -> b
+    | hd :: tl ->
+        build_mul_e_fun start_p end_p hd tl b |> let_body start_p end_p []
 end

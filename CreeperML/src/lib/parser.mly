@@ -5,16 +5,6 @@
 %{
     open Parser_ast
     open ParserAstUtils
-
-    let build_mul_e_fun start_p end_p ls b =
-      match List.rev ls with
-      | [] -> failwith "never happen case of nonempty_list"
-      | [ hd ] -> e_fun start_p end_p hd b
-      | hd :: tl ->
-          List.fold_left
-            (fun acc l -> let_body start_p end_p [] acc |> e_fun start_p end_p l)
-            (e_fun start_p end_p hd b) tl
-
 %}
 
 %token <int> INT
@@ -55,7 +45,8 @@ parse : program EOF { $1 }
 
 program : nonempty_list(let_binding) { $1 }
 
-let_binding : LET rec_f lvalue EQUALLY let_body { let_binding ~rec_flag:$2 $startpos $endpos $3 $5 }
+let_binding : LET rec_f lvalue list(lvalue) EQUALLY let_body 
+    { let_binding ~rec_flag:$2 $startpos $endpos $3 (build_let_body $startpos $endpos $4 $6) }
 
 rec_f : 
     | REC { rec_f }
@@ -82,7 +73,7 @@ literal :
 
 expr :
     | atom { $1 }
-    | FUN nonempty_list(lvalue) ARROW let_body { build_mul_e_fun $startpos $endpos $2 $4 }
+    | FUN lvalue list(lvalue) ARROW let_body { build_mul_e_fun $startpos $endpos $2 $3 $5 }
     | apply expr { e_apply $startpos $endpos $1 $2 }
     | IF expr THEN expr ELSE expr { e_if_else $startpos $endpos $2 $4 $6 }
     | expr predicate expr { e_apply $startpos $endpos $2 $1 |> fun e -> e_apply $startpos $endpos e $3}

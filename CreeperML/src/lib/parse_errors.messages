@@ -8,34 +8,31 @@ parse: UNDERBAR
 ##
 ##
 
-Wow, you caught error that I don't know when it appears! (O.O)
-Pls, send your input to me so that I can add cooler discription!
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET THEN
 ##
 ## Ends in an error in state: 1.
 ##
-## let_binding -> LET . rec_f lvalue EQUALLY let_body [ LET IN EOF ]
+## let_binding -> LET . rec_f lvalue list(lvalue) EQUALLY let_body [ LET IN EOF ]
 ##
 ## The known suffix of the stack is as follows:
 ## LET
 ##
 
-After LET token and before REC/name-that-binding token
-appered something that I can't recognize (>.<)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET REC THEN
 ##
 ## Ends in an error in state: 3.
 ##
-## let_binding -> LET rec_f . lvalue EQUALLY let_body [ LET IN EOF ]
+## let_binding -> LET rec_f . lvalue list(lvalue) EQUALLY let_body [ LET IN EOF ]
 ##
 ## The known suffix of the stack is as follows:
 ## LET rec_f
 ##
 
-After LET/REC token and before name-that-binding token
-appered something that I can't recognize (>.<)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET LEFTPARENT THEN
 ##
@@ -48,8 +45,7 @@ parse: LET LEFTPARENT THEN
 ## LEFTPARENT
 ##
 
-Oh, boy, you put some nonsence between brackets,
-when you named your value of function (Y.Y)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET LEFTPARENT NAME UNDERBAR
 ##
@@ -61,7 +57,7 @@ parse: LET LEFTPARENT NAME UNDERBAR
 ## LEFTPARENT lvalue
 ##
 
-Um, you missed comma when declaring tuple to be named (I.I)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET LEFTPARENT NAME COMMA THEN
 ##
@@ -73,7 +69,7 @@ parse: LET LEFTPARENT NAME COMMA THEN
 ## LEFTPARENT lvalue COMMA
 ##
 
-Um, eto, eh! After comma in tuple declaration should be another lvalue! (I.I)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET LEFTPARENT NAME COMMA NAME UNDERBAR
 ##
@@ -86,7 +82,7 @@ parse: LET LEFTPARENT NAME COMMA NAME UNDERBAR
 ## lvalue
 ##
 
-You may missed RIGHTPARENT in tuple declaration or may COMMA! (P.P)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET LEFTPARENT NAME COMMA NAME COMMA THEN
 ##
@@ -98,35 +94,47 @@ parse: LET LEFTPARENT NAME COMMA NAME COMMA THEN
 ## lvalue COMMA
 ##
 
-Um, eto, eh! After comma in tuple declaration should be another lvalue! (I.I)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-parse: LET NAME UNDERBAR
+parse: LET NAME THEN
 ##
 ## Ends in an error in state: 16.
 ##
-## let_binding -> LET rec_f lvalue . EQUALLY let_body [ LET IN EOF ]
+## let_binding -> LET rec_f lvalue . list(lvalue) EQUALLY let_body [ LET IN EOF ]
 ##
 ## The known suffix of the stack is as follows:
 ## LET rec_f lvalue
 ##
 
-Ups, between name to be binded and EQUALLY should not be nothing! (\\.\\)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
-parse: LET NAME EQUALLY UNDERBAR
+parse: LET NAME NAME THEN
 ##
 ## Ends in an error in state: 17.
 ##
-## let_binding -> LET rec_f lvalue EQUALLY . let_body [ LET IN EOF ]
+## list(lvalue) -> lvalue . list(lvalue) [ EQUALLY ]
 ##
 ## The known suffix of the stack is as follows:
-## LET rec_f lvalue EQUALLY
+## lvalue
 ##
 
-Yo, you should declarate function or value after EQUALLY token! (K.K)
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+parse: LET NAME EQUALLY UNDERBAR
+##
+## Ends in an error in state: 20.
+##
+## let_binding -> LET rec_f lvalue list(lvalue) EQUALLY . let_body [ LET IN EOF ]
+##
+## The known suffix of the stack is as follows:
+## LET rec_f lvalue list(lvalue) EQUALLY
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LEFTPARENT UNDERBAR
 ##
-## Ends in an error in state: 21.
+## Ends in an error in state: 24.
 ##
 ## atom -> LEFTPARENT . expr RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
 ## atom -> LEFTPARENT . expr COMMA separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
@@ -136,12 +144,11 @@ parse: LET NAME EQUALLY LEFTPARENT UNDERBAR
 ## LEFTPARENT
 ##
 
-So, you either write expression after LEFTPARENT,
-or nothing to declarate unit! (G.G)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY IF UNDERBAR
 ##
-## Ends in an error in state: 23.
+## Ends in an error in state: 26.
 ##
 ## expr -> IF . expr THEN expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -149,11 +156,11 @@ parse: LET NAME EQUALLY IF UNDERBAR
 ## IF
 ##
 
-God says, after IF word must be expression expression! (;;.;;)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY FUN THEN
 ##
-## Ends in an error in state: 24.
+## Ends in an error in state: 27.
 ##
 ## expr -> FUN . nonempty_list(lvalue) ARROW let_body [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -161,11 +168,11 @@ parse: LET NAME EQUALLY FUN THEN
 ## FUN
 ##
 
-And our God says, after FUN token should be name of argument! (Z.Z)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY FUN NAME ARROW UNDERBAR
 ##
-## Ends in an error in state: 26.
+## Ends in an error in state: 29.
 ##
 ## expr -> FUN nonempty_list(lvalue) ARROW . let_body [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -173,11 +180,11 @@ parse: LET NAME EQUALLY FUN NAME ARROW UNDERBAR
 ## FUN nonempty_list(lvalue) ARROW
 ##
 
-Yo, you should declarate function or value after ARROW token! (K.K)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LET NAME EQUALLY BOOL THEN
 ##
-## Ends in an error in state: 28.
+## Ends in an error in state: 31.
 ##
 ## inner_let_bind -> let_binding . IN [ STRING NAME LET LEFTPARENT INT IF FUN FLOAT BOOL ]
 ##
@@ -188,16 +195,16 @@ parse: LET NAME EQUALLY LET NAME EQUALLY BOOL THEN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
-## In state 65, spurious reduction of production let_body -> list(inner_let_bind) expr
-## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
+## In state 50, spurious reduction of production expr -> atom
+## In state 68, spurious reduction of production let_body -> list(inner_let_bind) expr
+## In state 69, spurious reduction of production let_binding -> LET rec_f lvalue list(lvalue) EQUALLY let_body
 ##
 
-Before IN you added something that are not part of let-body expression! ($.$)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LET NAME EQUALLY BOOL IN UNDERBAR
 ##
-## Ends in an error in state: 30.
+## Ends in an error in state: 33.
 ##
 ## list(inner_let_bind) -> inner_let_bind . list(inner_let_bind) [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
 ##
@@ -205,11 +212,11 @@ parse: LET NAME EQUALLY LET NAME EQUALLY BOOL IN UNDERBAR
 ## inner_let_bind
 ##
 
-After IN token must be some expression, I think so! (///.///)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY FUN NAME THEN
 ##
-## Ends in an error in state: 32.
+## Ends in an error in state: 35.
 ##
 ## nonempty_list(lvalue) -> lvalue . [ ARROW ]
 ## nonempty_list(lvalue) -> lvalue . nonempty_list(lvalue) [ ARROW ]
@@ -218,12 +225,11 @@ parse: LET NAME EQUALLY FUN NAME THEN
 ## lvalue
 ##
 
-You know, after name of argument in FUN-expression 
-should be another one xor ARROW token! (#.#)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY IF BOOL RIGHTPARENT
 ##
-## Ends in an error in state: 38.
+## Ends in an error in state: 41.
 ##
 ## expr -> IF expr . THEN expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ## expr -> expr . HIGHLVLPREDICATE expr [ THEN MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ]
@@ -239,16 +245,14 @@ parse: LET NAME EQUALLY IF BOOL RIGHTPARENT
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
+## In state 50, spurious reduction of production expr -> atom
 ##
 
-Honestly, this is bullshit (my code, not your). 
-I don't have enough contex, you may placed something
-that are not expression before PREDICATE xor THEN token! (:dead:)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY IF BOOL THEN UNDERBAR
 ##
-## Ends in an error in state: 39.
+## Ends in an error in state: 42.
 ##
 ## expr -> IF expr THEN . expr ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -256,11 +260,11 @@ parse: LET NAME EQUALLY IF BOOL THEN UNDERBAR
 ## IF expr THEN
 ##
 
-Between THEN and your then-code appered something! (@.@)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY IF BOOL THEN BOOL THEN
 ##
-## Ends in an error in state: 40.
+## Ends in an error in state: 43.
 ##
 ## expr -> IF expr THEN expr . ELSE expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ## expr -> expr . HIGHLVLPREDICATE expr [ MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE ELSE ]
@@ -276,16 +280,14 @@ parse: LET NAME EQUALLY IF BOOL THEN BOOL THEN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
+## In state 50, spurious reduction of production expr -> atom
 ##
 
-Between ELSE and your then-code appered something!
-Xor between PREDICATE and first to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL MIDLVLPREDICATE UNDERBAR
 ##
-## Ends in an error in state: 41.
+## Ends in an error in state: 44.
 ##
 ## expr -> expr MIDLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -293,12 +295,11 @@ parse: LET NAME EQUALLY BOOL MIDLVLPREDICATE UNDERBAR
 ## expr MIDLVLPREDICATE
 ##
 
-Between PREDICATE and second to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL MIDHIGHLVLPREDICATE UNDERBAR
 ##
-## Ends in an error in state: 43.
+## Ends in an error in state: 46.
 ##
 ## expr -> expr MIDHIGHLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -306,12 +307,11 @@ parse: LET NAME EQUALLY BOOL MIDHIGHLVLPREDICATE UNDERBAR
 ## expr MIDHIGHLVLPREDICATE
 ##
 
-Between PREDICATE and second to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL HIGHLVLPREDICATE UNDERBAR
 ##
-## Ends in an error in state: 45.
+## Ends in an error in state: 48.
 ##
 ## expr -> expr HIGHLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -319,12 +319,11 @@ parse: LET NAME EQUALLY BOOL HIGHLVLPREDICATE UNDERBAR
 ## expr HIGHLVLPREDICATE
 ##
 
-Between PREDICATE and second to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL UNDERBAR
 ##
-## Ends in an error in state: 47.
+## Ends in an error in state: 50.
 ##
 ## apply -> atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
 ## expr -> atom . [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
@@ -333,11 +332,11 @@ parse: LET NAME EQUALLY BOOL UNDERBAR
 ## atom
 ##
 
-After atomic expression exist thing that should not exist! (%.%)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL LOWMIDLVLPREDICATE UNDERBAR
 ##
-## Ends in an error in state: 50.
+## Ends in an error in state: 53.
 ##
 ## expr -> expr LOWMIDLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -345,12 +344,11 @@ parse: LET NAME EQUALLY BOOL LOWMIDLVLPREDICATE UNDERBAR
 ## expr LOWMIDLVLPREDICATE
 ##
 
-Between PREDICATE and second to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL LOWLVLPREDICATE UNDERBAR
 ##
-## Ends in an error in state: 52.
+## Ends in an error in state: 55.
 ##
 ## expr -> expr LOWLVLPREDICATE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -358,12 +356,11 @@ parse: LET NAME EQUALLY BOOL LOWLVLPREDICATE UNDERBAR
 ## expr LOWLVLPREDICATE
 ##
 
-Between PREDICATE and second to be applied expression
-appered something, yes! (*.*)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL BOOL UNDERBAR
 ##
-## Ends in an error in state: 54.
+## Ends in an error in state: 57.
 ##
 ## apply -> apply atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
 ## apply -> atom . [ STRING NAME LEFTPARENT INT IF FUN FLOAT BOOL ]
@@ -373,11 +370,11 @@ parse: LET NAME EQUALLY BOOL BOOL UNDERBAR
 ## apply atom
 ##
 
-After atomic expression exist thing that should not exist! (%.%)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY IF BOOL THEN BOOL ELSE UNDERBAR
 ##
-## Ends in an error in state: 55.
+## Ends in an error in state: 58.
 ##
 ## expr -> IF expr THEN expr ELSE . expr [ THEN RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET IN HIGHLVLPREDICATE EOF ELSE COMMA ]
 ##
@@ -385,11 +382,11 @@ parse: LET NAME EQUALLY IF BOOL THEN BOOL ELSE UNDERBAR
 ## IF expr THEN expr ELSE
 ##
 
-ELSE token and else-code were squeezed each other thing! (!.!)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL THEN
 ##
-## Ends in an error in state: 57.
+## Ends in an error in state: 60.
 ##
 ## atom -> LEFTPARENT expr . RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
 ## atom -> LEFTPARENT expr . COMMA separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
@@ -406,16 +403,14 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL THEN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
+## In state 50, spurious reduction of production expr -> atom
 ##
 
-You wanna use tuple or place expression between brackets?
-But you placed bad thing before COMMA or RIGHTPARENT at each case!
-Xor thing be placed after expression and before PREDICATE! (F.F)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA UNDERBAR
 ##
-## Ends in an error in state: 59.
+## Ends in an error in state: 62.
 ##
 ## atom -> LEFTPARENT expr COMMA . separated_nonempty_list(COMMA,expr) RIGHTPARENT [ THEN STRING RIGHTPARENT NAME MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE LET LEFTPARENT INT IN IF HIGHLVLPREDICATE FUN FLOAT EOF ELSE COMMA BOOL ]
 ##
@@ -423,12 +418,11 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA UNDERBAR
 ## LEFTPARENT expr COMMA
 ##
 
-At expression tuple you plased something that are not
-expression after first COMMA! (M.M)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL THEN
 ##
-## Ends in an error in state: 62.
+## Ends in an error in state: 65.
 ##
 ## expr -> expr . HIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
 ## expr -> expr . MIDHIGHLVLPREDICATE expr [ RIGHTPARENT MIDLVLPREDICATE MIDHIGHLVLPREDICATE LOWMIDLVLPREDICATE LOWLVLPREDICATE HIGHLVLPREDICATE COMMA ]
@@ -445,16 +439,14 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL THEN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
+## In state 50, spurious reduction of production expr -> atom
 ##
 
-At your tuple you placed somthing that should not be place
-after one of expressions! 
-Xor you placed unexpected one between expression and PREDICATE! (A.A)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL COMMA UNDERBAR
 ##
-## Ends in an error in state: 63.
+## Ends in an error in state: 66.
 ##
 ## separated_nonempty_list(COMMA,expr) -> expr COMMA . separated_nonempty_list(COMMA,expr) [ RIGHTPARENT ]
 ##
@@ -462,11 +454,11 @@ parse: LET NAME EQUALLY LEFTPARENT BOOL COMMA BOOL COMMA UNDERBAR
 ## expr COMMA
 ##
 
-After COMMA in tuple should be expression! (R.R)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 parse: LET NAME EQUALLY BOOL THEN
 ##
-## Ends in an error in state: 71.
+## Ends in an error in state: 74.
 ##
 ## nonempty_list(let_binding) -> let_binding . [ EOF ]
 ## nonempty_list(let_binding) -> let_binding . nonempty_list(let_binding) [ EOF ]
@@ -478,10 +470,10 @@ parse: LET NAME EQUALLY BOOL THEN
 ## This implies that, although the LR(1) items shown above provide an
 ## accurate view of the past (what has been recognized so far), they
 ## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 47, spurious reduction of production expr -> atom
-## In state 65, spurious reduction of production let_body -> list(inner_let_bind) expr
-## In state 66, spurious reduction of production let_binding -> LET rec_f lvalue EQUALLY let_body
+## In state 50, spurious reduction of production expr -> atom
+## In state 68, spurious reduction of production let_body -> list(inner_let_bind) expr
+## In state 69, spurious reduction of production let_binding -> LET rec_f lvalue list(lvalue) EQUALLY let_body
 ##
 
-Your program ends not good xor your last let-statement end not good! (E.e)
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
