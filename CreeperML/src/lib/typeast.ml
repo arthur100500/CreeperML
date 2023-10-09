@@ -10,7 +10,7 @@ module InferType = struct
   and ground_typ = TInt | TString | TBool | TUnit | TFloat
   [@@deriving show { with_path = false }]
 
-  type t =
+  type ty =
     | TArrow of typ * typ
     | TTuple of typ list
     | TGround of ground_typ
@@ -18,10 +18,7 @@ module InferType = struct
 
   and tv = Unbound of name * lvl | Link of typ
   and 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
-  and typ = t lvls [@@deriving show { with_path = false }]
-
-  type 'a typed = { value : 'a; typ : t }
-  [@@deriving show { with_path = false }]
+  and typ = ty lvls [@@deriving show { with_path = false }]
 
   type env = (name * typ) list
 end
@@ -40,9 +37,6 @@ module InferTypeUtils = struct
   let t_var t = TVar t
   let tv_unbound n l = Unbound (n, l)
   let tv_link t = Link t
-  let typed_value { value = v; typ = _ } = v
-  let with_typ t v = { value = v; typ = t }
-  let typ { value = _; typ = t } = t
   let lvl_value { value = v; old_lvl = _; new_lvl = _ } = v
 
   let is_unit typ =
@@ -74,6 +68,15 @@ module TypeAst = struct
   open InferType
   open Parser_ast.ParserAst
 
+  type ty =
+    | TArrow of ty * ty
+    | TTuple of ty list
+    | TGround of ground_typ
+    | TVar of name
+
+  and 'a typed = { value : 'a; typ : ty }
+  [@@deriving show { with_path = false }]
+
   type typ_name = name typed
   and typ_literal = literal typed
   and typ_lvalue = lvalue typed [@@deriving show { with_path = false }]
@@ -103,6 +106,9 @@ end
 module TypeAstUtils = struct
   open TypeAst
 
+  let typed_value { value = v; typ = _ } = v
+  let with_typ t v = { value = v; typ = t }
+  let typ { value = _; typ = t } = t
   let typ_let_binding rec_f l_v b = { rec_f; l_v; body = b }
   let typ_let_body ls e = { lets = ls; expr = e }
   let t_apply e1 e2 = TApply (e1, e2)

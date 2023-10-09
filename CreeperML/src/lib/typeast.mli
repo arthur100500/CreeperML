@@ -12,7 +12,7 @@ module InferType : sig
   and ground_typ = TInt | TString | TBool | TUnit | TFloat
 
   (* complex type *)
-  type t =
+  type ty =
     | TArrow of typ * typ
     | TTuple of typ list
     | TGround of ground_typ
@@ -25,10 +25,7 @@ module InferType : sig
   and 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
 
   (* main type for infering *)
-  and typ = t lvls
-
-  (* expresion with his type *)
-  type 'a typed = { value : 'a; typ : t }
+  and typ = ty lvls
 
   (* environment *)
   type env = (name * typ) list
@@ -36,22 +33,16 @@ module InferType : sig
   (* shows *)
   val show_lvl : lvl -> string
   val show_ground_typ : ground_typ -> string
-
-  (* val show_t : t -> string *)
+  val show_ty : ty -> string
   val show_tv : tv -> string
-  val show_typed : (Format.formatter -> 'a -> unit) -> 'a typed -> string
   val show_lvls : (Format.formatter -> 'a -> unit) -> 'a lvls -> string
   val show_typ : typ -> string
 
   (* pps *)
   val pp_lvl : Format.formatter -> lvl -> unit
   val pp_ground_typ : Format.formatter -> ground_typ -> unit
-
-  (* val pp_t : Format.formatter -> t -> unit *)
+  val pp_ty : Format.formatter -> ty -> unit
   val pp_tv : Format.formatter -> tv -> unit
-
-  val pp_typed :
-    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a typed -> unit
 
   val pp_lvls :
     (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a lvls -> unit
@@ -67,15 +58,12 @@ module InferTypeUtils : sig
   val t_string : ground_typ
   val t_bool : ground_typ
   val t_unit : ground_typ
-  val t_arrow : typ -> typ -> t
-  val t_tuple : typ list -> t
-  val t_ground : ground_typ -> t
-  val t_var : tv ref -> t
+  val t_arrow : typ -> typ -> ty
+  val t_tuple : typ list -> ty
+  val t_ground : ground_typ -> ty
+  val t_var : tv ref -> ty
   val tv_unbound : name -> lvl -> tv
   val tv_link : typ -> tv
-  val typed_value : 'a typed -> 'a
-  val with_typ : t -> 'a -> 'a typed
-  val typ : 'a typed -> t
   val is_unit : typ -> bool
   val lvl_value : 'a lvls -> 'a
   val with_lvls : lvl -> lvl -> 'a -> 'a lvls
@@ -84,7 +72,7 @@ module InferTypeUtils : sig
   val assoc : name -> env -> typ
 
   (* get type of const *)
-  val convert_const : literal Position.Position.position -> t
+  val convert_const : literal Position.Position.position -> ty
 
   (* simplifies links *)
   val repr : typ -> typ
@@ -93,6 +81,16 @@ end
 module TypeAst : sig
   open InferType
   open Parser_ast.ParserAst
+
+  (* types without lvlvs *)
+  type ty =
+    | TArrow of ty * ty
+    | TTuple of ty list
+    | TGround of ground_typ
+    | TVar of name
+
+  (* expresion with his type *)
+  and 'a typed = { value : 'a; typ : ty }
 
   type typ_name = name typed
   and typ_literal = literal typed
@@ -119,6 +117,8 @@ module TypeAst : sig
   type typ_program = typ_let_binding list
 
   (* shows *)
+  val show_ty : ty -> string
+  val show_typed : (Format.formatter -> 'a -> unit) -> 'a typed -> string
   val show_typ_name : typ_name -> string
   val show_typ_literal : typ_literal -> string
   val show_typ_lvalue : typ_lvalue -> string
@@ -129,6 +129,11 @@ module TypeAst : sig
   val show_typ_program : typ_program -> string
 
   (* pps *)
+  val pp_ty : Format.formatter -> ty -> unit
+
+  val pp_typed :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a typed -> unit
+
   val pp_typ_name : Format.formatter -> typ_name -> unit
   val pp_typ_literal : Format.formatter -> typ_literal -> unit
   val pp_typ_lvalue : Format.formatter -> typ_lvalue -> unit
@@ -142,6 +147,10 @@ end
 module TypeAstUtils : sig
   open Parser_ast.ParserAst
   open TypeAst
+
+  val typed_value : 'a typed -> 'a
+  val with_typ : ty -> 'a -> 'a typed
+  val typ : 'a typed -> ty
 
   val typ_let_binding :
     rec_flag -> typ_lvalue -> typ_let_body -> typ_let_binding
