@@ -105,6 +105,7 @@ module ParserAstUtils : sig
   (* recursive flags *)
   val rec_f : rec_flag
   val norec_f : rec_flag
+  val is_rec : rec_flag -> bool
 
   (* left values *)
   val lv_any : t -> t -> loc_lvalue

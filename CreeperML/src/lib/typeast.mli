@@ -76,11 +76,12 @@ module InferTypeUtils : sig
   val typed_value : 'a typed -> 'a
   val with_typ : t -> 'a -> 'a typed
   val typ : 'a typed -> t
+  val is_unit : typ -> bool
   val lvl_value : 'a lvls -> 'a
   val with_lvls : lvl -> lvl -> 'a -> 'a lvls
 
   (* find in env *)
-  val assoc : 'a -> ('a * 'b) list -> 'b
+  val assoc : name -> env -> typ
 
   (* get type of const *)
   val convert_const : literal Position.Position.position -> t
