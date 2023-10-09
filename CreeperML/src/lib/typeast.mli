@@ -84,10 +84,10 @@ module TypeAst : sig
 
   (* types without lvlvs *)
   type ty =
-    | TArrow of ty * ty
-    | TTuple of ty list
-    | TGround of ground_typ
-    | TVar of name
+    | TyArrow of ty * ty
+    | TyTuple of ty list
+    | TyGround of ground_typ
+    | TyVar of name
 
   (* expresion with his type *)
   and 'a typed = { value : 'a; typ : ty }
@@ -148,6 +148,10 @@ module TypeAstUtils : sig
   open Parser_ast.ParserAst
   open TypeAst
 
+  val ty_arrow : ty -> ty -> ty
+  val ty_tuple : ty list -> ty
+  val ty_ground : InferType.ground_typ -> ty
+  val ty_var : name -> ty
   val typed_value : 'a typed -> 'a
   val with_typ : ty -> 'a -> 'a typed
   val typ : 'a typed -> ty

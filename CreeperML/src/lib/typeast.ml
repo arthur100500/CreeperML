@@ -69,10 +69,10 @@ module TypeAst = struct
   open Parser_ast.ParserAst
 
   type ty =
-    | TArrow of ty * ty
-    | TTuple of ty list
-    | TGround of ground_typ
-    | TVar of name
+    | TyArrow of ty * ty
+    | TyTuple of ty list
+    | TyGround of ground_typ
+    | TyVar of name
 
   and 'a typed = { value : 'a; typ : ty }
   [@@deriving show { with_path = false }]
@@ -105,6 +105,12 @@ end
 
 module TypeAstUtils = struct
   open TypeAst
+  open InferTypeUtils
+
+  let ty_arrow t1 t2 = TyArrow (t1, t2)
+  let ty_tuple ts = TyTuple ts
+  let ty_ground t = TyGround t
+  let ty_var n = TyVar n
 
   let typed_value { value = v; typ = _ } = v
   let with_typ t v = { value = v; typ = t }
@@ -117,4 +123,7 @@ module TypeAstUtils = struct
   let t_fun l_v b = TFun { lvalue = l_v; body = b }
   let t_typle es = TTuple es
   let t_if_else c t f = TIfElse { cond = c; t_body = t; f_body = f }
+
+  let rec remove_lvl typ = match lvl_value typ with
+  |
 end
