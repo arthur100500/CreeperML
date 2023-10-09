@@ -44,6 +44,7 @@ module ParserAstUtils = struct
 
   let rec_f = Rec
   let norec_f = NoRec
+  let is_rec = function Rec -> true | NoRec -> false
   let lv_any start_p end_p = LvAny |> with_position start_p end_p
   let lv_unit start_p end_p = LvUnit |> with_position start_p end_p
   let lv_value start_p end_p n = LvValue n |> with_position start_p end_p

@@ -184,7 +184,9 @@ module InferUtils = struct
                t2.new_lvl <- min_lvl;
                new_tuple ts) (* think about lvlv too *)
       | TGround l_t, TGround r_t when l_t = r_t -> return t1
-      | _ -> error "cant unify smth"
+      | _ ->
+          Printf.sprintf "cant unify %s\n and\n %s" (show_typ t1) (show_typ t2)
+          |> error
 
   and unify_lev l t1 t2 = repr t1 |> update_lvl l >>= fun t1 -> unify t1 t2
 
@@ -262,16 +264,27 @@ module Infer = struct
   open Monad.Result
   open Position.Position
 
-  let lvalue env lv =
-    match value lv with
-    | LvAny -> (new_var (), env)
-    | LvUnit -> (t_ground t_unit |> with_lvls !curr_lvl !curr_lvl, env)
-    | LvValue n ->
-        let t = new_var () in
-        (t, (n, t) :: env)
-    | LvTuple _ -> failwith "not now"
+  (* types for inner functions *)
+  type named = Named of name | NotNamed
 
-  let tof =
+  let named n = Named n
+  let not_named = NotNamed
+
+  let lvalue lv =
+    match value lv with
+    | LvAny -> (not_named, new_var ()) |> return
+    | LvUnit ->
+        (not_named, t_ground t_unit |> with_lvls !curr_lvl !curr_lvl) |> return
+    | LvValue n -> (named n, new_var ()) |> return
+    | LvTuple _ -> error "not now"
+
+  let bind_lv_typ env lv t =
+    match lv with
+    | Named n -> (n, t) :: env
+    | NotNamed -> env (* adds tuples to named *)
+
+  (* tower of fantasy *)
+  let tof_expr =
     let rec helper env expr =
       match value expr with
       | ELiteral l -> convert_const l |> with_lvls !curr_lvl !curr_lvl |> return
@@ -288,7 +301,8 @@ module Infer = struct
           in
           new_tuple es |> return
       | EFun f ->
-          let t_arg, env = lvalue env f.lvalue in
+          let* n, t_arg = lvalue f.lvalue in
+          let env = bind_lv_typ env n t_arg in
           let* t_body = f.body |> value |> expr_b |> helper env in
           new_arrow t_arg t_body |> return
       | EApply (l, r) ->
@@ -307,4 +321,44 @@ module Infer = struct
           unify t_t t_f (* think here *)
     in
     helper
+
+  (* type of let expression *)
+  let tof_let =
+    let rec helper env { rec_f; l_v; body = b } =
+      let rec_env =
+        if is_rec rec_f then
+          lvalue l_v >>= fun (name, t) -> bind_lv_typ env name t |> return
+        else return env
+      in
+      enter_lvl ();
+      let* inner_env =
+        List.fold_left
+          (fun acc l ->
+            let* acc = acc in
+            let* _, env = helper acc l in
+            return env)
+          rec_env
+          (List.map value b.value.lets)
+      in
+      let t_e = b.value.expr |> tof_expr inner_env in
+      leave_lvl ();
+      t_e >>= gen >>= cyc_free >>= fun t ->
+      lvalue l_v >>= fun (n, _) -> (t, bind_lv_typ env n t) |> return
+    in
+    helper
+
+  (* top level inferencer *)
+  let top_infer env prog =
+    reset_typ_vars ();
+    reset_lvls_to_update ();
+    let* prog, env =
+      List.fold_left
+        (fun acc l ->
+          let* prog, env = acc in
+          let* t, env = tof_let env l in
+          (t :: prog, env) |> return)
+        (return ([], env))
+        prog
+    in
+    return (List.rev prog, env)
 end

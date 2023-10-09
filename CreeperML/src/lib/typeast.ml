@@ -44,6 +44,10 @@ module InferTypeUtils = struct
   let with_typ t v = { value = v; typ = t }
   let typ { value = _; typ = t } = t
   let lvl_value { value = v; old_lvl = _; new_lvl = _ } = v
+
+  let is_unit typ =
+    match lvl_value typ with TGround TUnit -> true | _ -> false
+
   let with_lvls old_l new_l v = { value = v; old_lvl = old_l; new_lvl = new_l }
   let assoc = List.assoc
 
