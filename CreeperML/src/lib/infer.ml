@@ -6,6 +6,7 @@ module InferUtils = struct
   open Typeast.InferType
   open Typeast.InferTypeUtils
   open Monad.Result
+  open Position.Position
 
   (* naming and global lvl management*)
   let generic_lvl = 100500
@@ -128,7 +129,7 @@ module InferUtils = struct
     return (lvls_to_update := ls_to_update)
 
   (* unifies two type vars and returned their general type *)
-  let rec unify t1 t2 =
+  let rec unify (p1, p2) t1 t2 =
     if t1 == t2 then return t1
     else
       let t1, t2 = (repr t1, repr t2) in
@@ -159,8 +160,8 @@ module InferUtils = struct
             let min_lvl = min t1.new_lvl t2.new_lvl in
             t1.new_lvl <- marked_lvl;
             t2.new_lvl <- marked_lvl;
-            let* fst = unify_lev min_lvl l_t1 r_t1 in
-            let* snd = unify_lev min_lvl l_t2 r_t2 in
+            let* fst = unify_lev (p1, p2) min_lvl l_t1 r_t1 in
+            let* snd = unify_lev (p1, p2) min_lvl l_t2 r_t2 in
             return
               (t1.new_lvl <- min_lvl;
                t2.new_lvl <- min_lvl;
@@ -176,7 +177,7 @@ module InferUtils = struct
               List.fold_right2
                 (fun l_t r_t acc ->
                   let* acc = acc in
-                  unify_lev min_lvl l_t r_t >>| fun t -> t :: acc)
+                  unify_lev (p1, p2) min_lvl l_t r_t >>| fun t -> t :: acc)
                 l_ts r_ts (return [])
             in
             return
@@ -185,10 +186,12 @@ module InferUtils = struct
                new_tuple ts) (* think about lvlv too *)
       | TGround l_t, TGround r_t when l_t = r_t -> return t1
       | _ ->
-          Printf.sprintf "cant unify %s\n and\n %s" (show_typ t1) (show_typ t2)
+          Printf.sprintf "cant unify %s\n at %s and\n %s at %s" (show_typ t1)
+            (show_loc p1) (show_typ t2) (show_loc p2)
           |> error
 
-  and unify_lev l t1 t2 = repr t1 |> update_lvl l >>= fun t1 -> unify t1 t2
+  and unify_lev pos l t1 t2 =
+    repr t1 |> update_lvl l >>= fun t1 -> unify pos t1 t2
 
   (* generalise type vars *)
   let gen t =
@@ -289,7 +292,8 @@ module Infer = struct
       match value expr with
       | ELiteral l -> convert_const l |> with_lvls !curr_lvl !curr_lvl |> return
       | EValue n -> (
-          try assoc n env |> return with Not_found -> error "no name")
+          try assoc n env |> return
+          with Not_found -> Printf.sprintf "cant find name %s" n |> error)
       | ETuple es ->
           let* es =
             List.fold_right
@@ -309,16 +313,18 @@ module Infer = struct
           let* t_fun = helper env l in
           let* t_arg = helper env r in
           let t_res = new_var () in
-          let* _ = new_arrow t_arg t_res |> unify t_fun in
+          let* _ = new_arrow t_arg t_res |> unify (l.pos, r.pos) t_fun in
           return t_res (* also aslo *)
       | EIfElse { cond = c; t_body = t; f_body = f } ->
           let* t_c = helper env c in
           let* _ =
-            t_bool |> t_ground |> with_lvls !curr_lvl !curr_lvl |> unify t_c
+            t_bool |> t_ground
+            |> with_lvls !curr_lvl !curr_lvl
+            |> unify (c.pos, c.pos) t_c
           in
           let* t_t = helper env t in
           let* t_f = helper env f in
-          unify t_t t_f (* think here *)
+          unify (t.pos, f.pos) t_t t_f (* think here *)
     in
     helper
 
