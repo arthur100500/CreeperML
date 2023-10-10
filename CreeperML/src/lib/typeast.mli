@@ -92,9 +92,7 @@ module TypeAst : sig
   (* expresion with his type *)
   and 'a typed = { value : 'a; typ : ty }
 
-  type typ_name = name typed
-  and typ_literal = literal typed
-  and typ_lvalue = lvalue typed
+  type typ_lvalue = lvalue typed
 
   type typ_let_binding = {
     rec_f : rec_flag;
@@ -106,8 +104,8 @@ module TypeAst : sig
 
   and t_expr =
     | TApply of typ_expr * typ_expr
-    | TLiteral of typ_literal
-    | TValue of typ_name
+    | TLiteral of literal
+    | TValue of name
     | TFun of { lvalue : typ_lvalue; body : typ_let_body }
     | TTuple of typ_expr list
     | TIfElse of { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
@@ -119,8 +117,6 @@ module TypeAst : sig
   (* shows *)
   val show_ty : ty -> string
   val show_typed : (Format.formatter -> 'a -> unit) -> 'a typed -> string
-  val show_typ_name : typ_name -> string
-  val show_typ_literal : typ_literal -> string
   val show_typ_lvalue : typ_lvalue -> string
   val show_typ_let_binding : typ_let_binding -> string
   val show_typ_let_body : typ_let_body -> string
@@ -134,8 +130,6 @@ module TypeAst : sig
   val pp_typed :
     (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a typed -> unit
 
-  val pp_typ_name : Format.formatter -> typ_name -> unit
-  val pp_typ_literal : Format.formatter -> typ_literal -> unit
   val pp_typ_lvalue : Format.formatter -> typ_lvalue -> unit
   val pp_typ_let_binding : Format.formatter -> typ_let_binding -> unit
   val pp_typ_let_body : Format.formatter -> typ_let_body -> unit
@@ -161,9 +155,12 @@ module TypeAstUtils : sig
 
   val typ_let_body : typ_let_binding list -> typ_expr -> typ_let_body
   val t_apply : typ_expr -> typ_expr -> t_expr
-  val t_literal : typ_literal -> t_expr
-  val t_value : typ_name -> t_expr
+  val t_literal : literal -> t_expr
+  val t_value : name -> t_expr
   val t_fun : typ_lvalue -> typ_let_body -> t_expr
-  val t_typle : typ_expr list -> t_expr
+  val t_tuple : typ_expr list -> t_expr
   val t_if_else : typ_expr -> typ_expr -> typ_expr -> t_expr
+
+  (* removes infer's levels from types *)
+  val remove_lvl : InferType.typ -> ty
 end

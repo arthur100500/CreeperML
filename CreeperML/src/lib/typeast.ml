@@ -77,9 +77,7 @@ module TypeAst = struct
   and 'a typed = { value : 'a; typ : ty }
   [@@deriving show { with_path = false }]
 
-  type typ_name = name typed
-  and typ_literal = literal typed
-  and typ_lvalue = lvalue typed [@@deriving show { with_path = false }]
+  type typ_lvalue = lvalue typed [@@deriving show { with_path = false }]
 
   type typ_let_binding = {
     rec_f : rec_flag;
@@ -91,8 +89,8 @@ module TypeAst = struct
 
   and t_expr =
     | TApply of typ_expr * typ_expr
-    | TLiteral of typ_literal
-    | TValue of typ_name
+    | TLiteral of literal
+    | TValue of name
     | TFun of { lvalue : typ_lvalue; body : typ_let_body }
     | TTuple of typ_expr list
     | TIfElse of { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
@@ -111,7 +109,6 @@ module TypeAstUtils = struct
   let ty_tuple ts = TyTuple ts
   let ty_ground t = TyGround t
   let ty_var n = TyVar n
-
   let typed_value { value = v; typ = _ } = v
   let with_typ t v = { value = v; typ = t }
   let typ { value = _; typ = t } = t
@@ -121,9 +118,15 @@ module TypeAstUtils = struct
   let t_literal l = TLiteral l
   let t_value n = TValue n
   let t_fun l_v b = TFun { lvalue = l_v; body = b }
-  let t_typle es = TTuple es
+  let t_tuple es = TTuple es
   let t_if_else c t f = TIfElse { cond = c; t_body = t; f_body = f }
 
-  let rec remove_lvl typ = match lvl_value typ with
-  |
+  let rec remove_lvl typ =
+    let open InferType in
+    match lvl_value typ with
+    | TVar { contents = Unbound (n, _) } -> ty_var n
+    | TVar { contents = Link t } -> remove_lvl t
+    | TArrow (t1, t2) -> remove_lvl t1 |> fun t1 -> remove_lvl t2 |> ty_arrow t1
+    | TTuple ts -> List.map remove_lvl ts |> ty_tuple
+    | TGround t -> ty_ground t
 end
