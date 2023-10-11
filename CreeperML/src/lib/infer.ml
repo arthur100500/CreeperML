@@ -3,8 +3,8 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 module InferUtils = struct
-  open Typeast.InferType
-  open Typeast.InferTypeUtils
+  open Type_ast.InferType
+  open Type_ast.InferTypeUtils
   open Monad.Result
   open Position.Position
 
@@ -263,7 +263,7 @@ module Infer = struct
   open Parser_ast.ParserAst
   open Parser_ast.ParserAstUtils
   open InferUtils
-  open Typeast.InferTypeUtils
+  open Type_ast.InferTypeUtils
   open Monad.Result
   open Position.Position
 
@@ -367,4 +367,39 @@ module Infer = struct
         prog
     in
     return (List.rev prog, env)
+end
+
+module AstInfer = struct
+  open Parser_ast.ParserAst
+  open Position.Position
+  open Type_ast.TypeAst
+  open Type_ast.TypeAstUtils
+  open Monad.Result
+  open Infer
+
+  let build_ast env =
+    let rec expr env e =
+      let* t = tof_expr env e in
+      let t = remove_lvl t in
+      match value e with
+      | EValue n -> t_value n |> with_typ t |> return
+      | ELiteral l -> value l |> t_literal |> with_typ t |> return
+      | ETuple es ->
+          let* es =
+            List.fold_right
+              (fun e acc ->
+                let* acc = acc in
+                let* e = expr env e in
+                e :: acc |> return)
+              es (return [])
+          in
+          t_tuple es |> with_typ t |> return
+      | EIfElse { cond = c_b; t_body = t_b; f_body = f_b } ->
+          let* c_b = expr env c_b in
+          let* t_b = expr env t_b in
+          let* f_b = expr env f_b in
+          t_if_else c_b t_b f_b |> with_typ t |> return
+      | _ -> error ""
+    in
+    error ""
 end
