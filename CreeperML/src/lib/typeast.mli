@@ -106,10 +106,12 @@ module TypeAst : sig
     | TApply of typ_expr * typ_expr
     | TLiteral of literal
     | TValue of name
-    | TFun of { lvalue : typ_lvalue; body : typ_let_body }
+    | TFun of tfun_body
     | TTuple of typ_expr list
-    | TIfElse of { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
+    | TIfElse of tif_else
 
+  and tfun_body = { lvalue : typ_lvalue; b : typ_let_body }
+  and tif_else = { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
   and typ_expr = t_expr typed
 
   type typ_program = typ_let_binding list
@@ -120,6 +122,8 @@ module TypeAst : sig
   val show_typ_lvalue : typ_lvalue -> string
   val show_typ_let_binding : typ_let_binding -> string
   val show_typ_let_body : typ_let_body -> string
+  val show_tfun_body : tfun_body -> string
+  val show_tif_else : tif_else -> string
   val show_t_expr : t_expr -> string
   val show_typ_expr : typ_expr -> string
   val show_typ_program : typ_program -> string
@@ -133,6 +137,8 @@ module TypeAst : sig
   val pp_typ_lvalue : Format.formatter -> typ_lvalue -> unit
   val pp_typ_let_binding : Format.formatter -> typ_let_binding -> unit
   val pp_typ_let_body : Format.formatter -> typ_let_body -> unit
+  val pp_tfun_body : Format.formatter -> tfun_body -> unit
+  val pp_tif_else : Format.formatter -> tif_else -> unit
   val pp_t_expr : Format.formatter -> t_expr -> unit
   val pp_typ_expr : Format.formatter -> typ_expr -> unit
   val pp_typ_program : Format.formatter -> typ_program -> unit

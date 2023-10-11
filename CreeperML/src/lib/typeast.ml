@@ -91,10 +91,12 @@ module TypeAst = struct
     | TApply of typ_expr * typ_expr
     | TLiteral of literal
     | TValue of name
-    | TFun of { lvalue : typ_lvalue; body : typ_let_body }
+    | TFun of tfun_body
     | TTuple of typ_expr list
-    | TIfElse of { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
+    | TIfElse of tif_else
 
+  and tfun_body = { lvalue : typ_lvalue; b : typ_let_body }
+  and tif_else = { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
   and typ_expr = t_expr typed [@@deriving show { with_path = false }]
 
   type typ_program = typ_let_binding list
@@ -117,7 +119,7 @@ module TypeAstUtils = struct
   let t_apply e1 e2 = TApply (e1, e2)
   let t_literal l = TLiteral l
   let t_value n = TValue n
-  let t_fun l_v b = TFun { lvalue = l_v; body = b }
+  let t_fun l_v b = TFun { lvalue = l_v; b }
   let t_tuple es = TTuple es
   let t_if_else c t f = TIfElse { cond = c; t_body = t; f_body = f }
 
