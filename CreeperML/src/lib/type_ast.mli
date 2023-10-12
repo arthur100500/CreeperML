@@ -5,6 +5,8 @@
 module InferType : sig
   open Parser_ast.ParserAst
 
+  (* inner types for inferencer that unused in other modules *)
+
   (* level of type nesting *)
   type lvl = int
 
@@ -81,6 +83,8 @@ end
 module TypeAst : sig
   open InferType
   open Parser_ast.ParserAst
+
+  (* outter typed ast that used by next modules *)
 
   (* types without lvlvs *)
   type ty =
