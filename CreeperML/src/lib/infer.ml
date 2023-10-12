@@ -264,6 +264,7 @@ module Infer = struct
   open Parser_ast.ParserAstUtils
   open InferUtils
   open Type_ast.InferTypeUtils
+  open Type_ast.TypeAstUtils
   open Monad.Result
   open Position.Position
 
@@ -286,13 +287,28 @@ module Infer = struct
     | Named n -> (n, t) :: env
     | NotNamed -> env (* adds tuples to named *)
 
+  (* type of value returned by tof_expr *)
+  type expr_ret = {
+    typ : Type_ast.InferType.typ;
+    t_ast : Type_ast.TypeAst.typ_expr;
+  }
+
+  let ret_typ { typ = t; t_ast = _ } = t
+  let ret_ast { typ = _; t_ast = t } = t
+
   (* tower of fantasy *)
   let tof_expr =
     let rec helper env expr =
       match value expr with
-      | ELiteral l -> convert_const l |> with_lvls !curr_lvl !curr_lvl |> return
+      | ELiteral l ->
+          convert_const l |> with_lvls !curr_lvl !curr_lvl |> fun typ ->
+          value l |> t_literal |> with_typ (remove_lvl typ) |> fun t_ast ->
+          return { typ; t_ast }
       | EValue n -> (
-          try assoc n env |> return
+          try
+            assoc n env |> inst |> fun typ ->
+            t_value n |> with_typ (remove_lvl typ) |> fun t_ast ->
+            return { typ; t_ast }
           with Not_found -> Printf.sprintf "cant find name %s" n |> error)
       | ETuple es ->
           let* es =
@@ -303,103 +319,104 @@ module Infer = struct
                 e :: acc |> return)
               es (return [])
           in
-          new_tuple es |> return
+          List.map ret_typ es |> new_tuple |> fun typ ->
+          List.map ret_ast es |> t_tuple |> with_typ (remove_lvl typ)
+          |> fun t_ast -> return { typ; t_ast }
       | EFun f ->
           let* n, t_arg = lvalue f.lvalue in
           let env = bind_lv_typ env n t_arg in
           let* t_body = f.body |> value |> expr_b |> helper env in
-          new_arrow t_arg t_body |> return
+          new_arrow t_arg t_body.typ |> fun typ ->
+          value f.lvalue |> with_typ (remove_lvl t_arg) |> fun l_v ->
+          typ_let_body [] t_body.t_ast |> t_fun l_v |> with_typ (remove_lvl typ)
+          |> fun t_ast -> return { typ; t_ast }
       | EApply (l, r) ->
           let* t_fun = helper env l in
           let* t_arg = helper env r in
           let t_res = new_var () in
-          let* _ = new_arrow t_arg t_res |> unify (l.pos, r.pos) t_fun in
-          return t_res (* also aslo *)
+          let* _ =
+            new_arrow t_arg.typ t_res |> unify (l.pos, r.pos) t_fun.typ
+          in
+          t_apply t_arg.t_ast t_fun.t_ast |> with_typ (remove_lvl t_res)
+          |> fun t_ast -> return { typ = t_res; t_ast }
+          (* also aslo *)
       | EIfElse { cond = c; t_body = t; f_body = f } ->
           let* t_c = helper env c in
           let* _ =
             t_bool |> t_ground
             |> with_lvls !curr_lvl !curr_lvl
-            |> unify (c.pos, c.pos) t_c
+            |> unify (c.pos, c.pos) t_c.typ
           in
           let* t_t = helper env t in
           let* t_f = helper env f in
-          unify (t.pos, f.pos) t_t t_f (* think here *)
+          let* typ = unify (t.pos, f.pos) t_t.typ t_f.typ (* think here *) in
+          t_if_else t_c.t_ast t_t.t_ast t_f.t_ast |> with_typ (remove_lvl typ)
+          |> fun t_ast -> return { typ; t_ast }
     in
     helper
 
+  (* type of value returned by tof_let *)
+  type let_ret = {
+    typ : Type_ast.InferType.typ;
+    let_ast : Type_ast.TypeAst.typ_let_binding;
+  }
+
+  let ret_let { typ = _; let_ast = t } = t
+
   (* type of let expression *)
   let tof_let =
-    let rec helper env { rec_f; l_v; body = b } =
-      let rec_env =
+    let rec helper env { value = { rec_f; l_v; body }; pos = _ } =
+      let* rec_env =
         if is_rec rec_f then
-          lvalue l_v >>= fun (name, t) -> bind_lv_typ env name t |> return
+          lvalue l_v >>= fun (n, t) -> bind_lv_typ env n t |> return
         else return env
       in
       enter_lvl ();
-      let* inner_env =
+      let* lets, inner_env =
         List.fold_left
           (fun acc l ->
-            let* acc = acc in
-            let* _, env = helper acc l in
-            return env)
-          rec_env
-          (List.map value b.value.lets)
+            let* lets, env = acc in
+            let* l, env = helper env l in
+            return (l :: lets, env))
+          (return ([], rec_env))
+          body.value.lets
       in
-      let t_e = b.value.expr |> tof_expr inner_env in
+      let* t_e = body.value.expr |> tof_expr inner_env in
       leave_lvl ();
-      t_e >>= gen >>= cyc_free >>= fun t ->
-      lvalue l_v >>= fun (n, _) -> (t, bind_lv_typ env n t) |> return
+      let lets = List.rev lets |> List.map ret_let in
+      gen t_e.typ >>= cyc_free >>= fun typ ->
+      typ_let_body lets t_e.t_ast
+      |> typ_let_binding rec_f (value l_v |> with_typ (remove_lvl typ))
+      |> fun let_ast ->
+      lvalue l_v >>= fun (n, _) ->
+      bind_lv_typ env n typ |> fun env -> return ({ typ; let_ast }, env)
     in
     helper
+
+  (* top level expr infer *)
+  let top_expr_infer env expr =
+    reset_typ_vars ();
+    reset_lvls_to_update ();
+    tof_expr env expr >>= fun e -> ret_ast e |> return
+
+  (* top level let binding infer *)
+  let top_let_infer env l =
+    reset_typ_vars ();
+    reset_lvls_to_update ();
+    tof_let env l >>= fun (l, _) -> ret_let l |> return
 
   (* top level inferencer *)
   let top_infer env prog =
     reset_typ_vars ();
     reset_lvls_to_update ();
-    let* prog, env =
+    let* prog, _ =
       List.fold_left
         (fun acc l ->
           let* prog, env = acc in
           let* t, env = tof_let env l in
-          (t :: prog, env) |> return)
+          (t.let_ast :: prog, env) |> return)
         (return ([], env))
         prog
     in
-    return (List.rev prog, env)
-end
-
-module AstInfer = struct
-  open Parser_ast.ParserAst
-  open Position.Position
-  open Type_ast.TypeAst
-  open Type_ast.TypeAstUtils
-  open Monad.Result
-  open Infer
-
-  let build_ast env =
-    let rec expr env e =
-      let* t = tof_expr env e in
-      let t = remove_lvl t in
-      match value e with
-      | EValue n -> t_value n |> with_typ t |> return
-      | ELiteral l -> value l |> t_literal |> with_typ t |> return
-      | ETuple es ->
-          let* es =
-            List.fold_right
-              (fun e acc ->
-                let* acc = acc in
-                let* e = expr env e in
-                e :: acc |> return)
-              es (return [])
-          in
-          t_tuple es |> with_typ t |> return
-      | EIfElse { cond = c_b; t_body = t_b; f_body = f_b } ->
-          let* c_b = expr env c_b in
-          let* t_b = expr env t_b in
-          let* f_b = expr env f_b in
-          t_if_else c_b t_b f_b |> with_typ t |> return
-      | _ -> error ""
-    in
-    error ""
+    List.rev prog |> return
 end
