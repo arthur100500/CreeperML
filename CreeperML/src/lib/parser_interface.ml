@@ -47,9 +47,9 @@ module ParserInterface = struct
     with Syntax_error (pos, err) -> (
       match pos with
       | Some (line, pos) ->
-          Error
-            (Printf.sprintf "Syntax error on line %d, character %d:\n%s" line
-               pos err)
+          Printf.sprintf "Syntax error on line %d, character %d:\n%s" line pos
+            err
+          |> error
       | None -> Printf.sprintf "Syntax error:\n%s" err |> error)
 
   let from_string s =
