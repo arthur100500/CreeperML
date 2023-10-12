@@ -273,12 +273,15 @@ module Infer = struct
   (* main inferencer module *)
 
   (* types for inner functions *)
-  type named = Named of name | NotNamed
+  module Named = struct
+    type named = Named of name | NotNamed
 
-  let named n = Named n
-  let not_named = NotNamed
+    let named n = Named n
+    let not_named = NotNamed
+  end
 
   let lvalue lv =
+    let open Named in
     match value lv with
     | LvAny -> (not_named, new_var ()) |> return
     | LvUnit ->
@@ -287,22 +290,26 @@ module Infer = struct
     | LvTuple _ -> error "not now"
 
   let bind_lv_typ env lv t =
+    let open Named in
     match lv with
     | Named n -> (n, t) :: env
     | NotNamed -> env (* adds tuples to named *)
 
-  (* type of value returned by tof_expr *)
-  type expr_ret = {
-    typ : Type_ast.InferType.typ;
-    t_ast : Type_ast.TypeAst.typ_expr;
-  }
+  module ExprRet = struct
+    (* type of value returned by tof_expr *)
+    type expr_ret = {
+      typ : Type_ast.InferType.typ;
+      t_ast : Type_ast.TypeAst.typ_expr;
+    }
 
-  let ret_typ { typ = t; t_ast = _ } = t
-  let ret_ast { typ = _; t_ast = t } = t
+    let ret_typ { typ = t; t_ast = _ } = t
+    let ret_ast { typ = _; t_ast = t } = t
+  end
 
   (* tower of fantasy *)
   let tof_expr =
     let rec helper env expr =
+      let open ExprRet in
       match value expr with
       | ELiteral l ->
           convert_const l |> with_lvls !curr_lvl !curr_lvl |> fun typ ->
@@ -359,17 +366,21 @@ module Infer = struct
     in
     helper
 
-  (* type of value returned by tof_let *)
-  type let_ret = {
-    typ : Type_ast.InferType.typ;
-    let_ast : Type_ast.TypeAst.typ_let_binding;
-  }
+  module LetRet = struct
+    (* type of value returned by tof_let *)
+    type let_ret = {
+      typ : Type_ast.InferType.typ;
+      let_ast : Type_ast.TypeAst.typ_let_binding;
+    }
 
-  let ret_let { typ = _; let_ast = t } = t
+    let ret_let { typ = _; let_ast = t } = t
+  end
 
   (* type of let expression *)
   let tof_let =
     let rec helper env { value = { rec_f; l_v; body }; pos = _ } =
+      let open ExprRet in
+      let open LetRet in
       let* rec_env =
         if is_rec rec_f then
           lvalue l_v >>= fun (n, t) -> bind_lv_typ env n t |> return
@@ -401,13 +412,13 @@ module Infer = struct
   let top_expr_infer env expr =
     reset_typ_vars ();
     reset_lvls_to_update ();
-    tof_expr env expr >>= fun e -> ret_ast e |> return
+    tof_expr env expr >>= fun e -> ExprRet.ret_ast e |> return
 
   (* top level let binding infer *)
   let top_let_infer env l =
     reset_typ_vars ();
     reset_lvls_to_update ();
-    tof_let env l >>= fun (l, _) -> ret_let l |> return
+    tof_let env l >>= fun (l, _) -> LetRet.ret_let l |> return
 
   (* top level inferencer *)
   let top_infer env prog =
