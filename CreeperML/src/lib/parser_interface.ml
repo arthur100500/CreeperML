@@ -3,6 +3,7 @@
 module ParserInterface = struct
   open Lexing
   module I = Parser.MenhirInterpreter
+  open Monad.Result
 
   exception Syntax_error of ((int * int) option * string)
 
@@ -42,14 +43,14 @@ module ParserInterface = struct
   let parser lexbuf =
     try
       let code = parse lexbuf (Parser.Incremental.parse lexbuf.lex_curr_p) in
-      Ok code
+      return code
     with Syntax_error (pos, err) -> (
       match pos with
       | Some (line, pos) ->
           Error
             (Printf.sprintf "Syntax error on line %d, character %d:\n%s" line
                pos err)
-      | None -> Error (Printf.sprintf "Syntax error:\n%s" err))
+      | None -> Printf.sprintf "Syntax error:\n%s" err |> error)
 
   let from_string s =
     let lexbuf = Lexing.from_string s in
