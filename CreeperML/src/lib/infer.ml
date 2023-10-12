@@ -8,6 +8,8 @@ module InferUtils = struct
   open Monad.Result
   open Position.Position
 
+  (* inner module for inferencer *)
+
   (* naming and global lvl management*)
   let generic_lvl = 100500
   let marked_lvl = -1
@@ -267,6 +269,8 @@ module Infer = struct
   open Type_ast.TypeAstUtils
   open Monad.Result
   open Position.Position
+
+  (* main inferencer module *)
 
   (* types for inner functions *)
   type named = Named of name | NotNamed
