@@ -125,6 +125,7 @@ module TypeAstUtils = struct
   let typed_value { value = v; typ = _ } = v
   let with_typ t v = { value = v; typ = t }
   let typ { value = _; typ = t } = t
+  let ty_typ : ('a, ty) typed -> ty = fun { value = _; typ = t } -> t
   let typ_let_binding rec_f l_v b = { rec_f; l_v; body = b }
   let typ_let_body ls e = { lets = ls; expr = e }
   let t_apply e1 e2 = TApply (e1, e2)

@@ -219,6 +219,7 @@ module TypeAstUtils : sig
   val typed_value : ('a, 'b) typed -> 'a
   val with_typ : 'b -> 'a -> ('a, 'b) typed
   val typ : ('a, 'b) typed -> 'b
+  val ty_typ : ('a, ty) typed -> ty
 
   val typ_let_binding :
     rec_flag -> 'a typ_lvalue -> 'a typ_let_body -> 'a typ_let_binding
