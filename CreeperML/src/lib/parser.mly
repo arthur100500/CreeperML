@@ -46,7 +46,7 @@ parse : program EOF { $1 }
 program : nonempty_list(let_binding) { $1 }
 
 let_binding : LET rec_f lvalue list(lvalue) EQUALLY let_body 
-    { let_binding ~rec_flag:$2 $startpos $endpos $3 (build_let_body $startpos $endpos $4 $6) }
+    { let_binding ~rec_flag:$2 $startpos $endpos $3 $4 (build_let_body $startpos $endpos $4 $6) }
 
 rec_f : 
     | REC { rec_f }

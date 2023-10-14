@@ -39,6 +39,7 @@ module InferType : sig
   val show_tv : tv -> string
   val show_lvls : (Format.formatter -> 'a -> unit) -> 'a lvls -> string
   val show_typ : typ -> string
+  val show_env : env -> string
 
   (* pps *)
   val pp_lvl : Format.formatter -> lvl -> unit
@@ -50,6 +51,7 @@ module InferType : sig
     (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a lvls -> unit
 
   val pp_typ : Format.formatter -> typ -> unit
+  val pp_env : Format.formatter -> env -> unit
 end
 
 module InferTypeUtils : sig

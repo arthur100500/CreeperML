@@ -31,9 +31,10 @@ module ParserAst : sig
   and loc_literal = literal position
 
   type let_binding = {
-    (* is recursive, name, body *)
+    (* is recursive, name, names of args, body *)
     rec_f : rec_flag;
     l_v : loc_lvalue;
+    args : loc_lvalue list;
     body : loc_let_body;
   }
 
@@ -134,12 +135,15 @@ module ParserAstUtils : sig
     t ->
     t ->
     loc_lvalue ->
+    loc_lvalue list ->
     loc_let_body ->
     loc_let_binding
 
   val let_body : t -> t -> loc_let_binding list -> loc_expr -> loc_let_body
   val body : let_binding -> loc_let_body
+  val args : let_binding -> loc_lvalue list
   val expr_b : let_body -> loc_expr
+  val lets : let_body -> loc_let_binding list
 
   (* from lvalue, list of lvalues and body build chain of EFun-s*)
   val build_mul_e_fun :

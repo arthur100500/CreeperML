@@ -20,7 +20,13 @@ module ParserAst = struct
 
   and loc_literal = literal position [@@deriving show { with_path = false }]
 
-  type let_binding = { rec_f : rec_flag; l_v : loc_lvalue; body : loc_let_body }
+  type let_binding = {
+    rec_f : rec_flag;
+    l_v : loc_lvalue;
+    args : loc_lvalue list;
+    body : loc_let_body;
+  }
+
   and let_body = { lets : loc_let_binding list; expr : loc_expr }
 
   and expr =
@@ -69,16 +75,22 @@ module ParserAstUtils = struct
   let e_if_else start_p end_p c t f =
     EIfElse { cond = c; t_body = t; f_body = f } |> with_position start_p end_p
 
-  let let_binding ?(rec_flag = norec_f) start_p end_p lv body =
-    { rec_f = rec_flag; l_v = lv; body } |> with_position start_p end_p
+  let let_binding ?(rec_flag = norec_f) start_p end_p lv args body =
+    { rec_f = rec_flag; l_v = lv; args; body } |> with_position start_p end_p
 
   let let_body start_p end_p ls e =
     { lets = ls; expr = e } |> with_position start_p end_p
 
-  let body { rec_f = _; l_v = _; body = b } = b
+  let body { rec_f = _; l_v = _; args = _; body = b } = b
+  let args { rec_f = _; l_v = _; args; body = _ } = args
   let expr_b { lets = _; expr = e } = e
+  let lets { lets; expr = _ } = lets
 
   let build_mul_e_fun start_p end_p hd tl b =
+    let b =
+      position b |> fun { start_p; end_p } ->
+      value b |> expr_b |> let_body start_p end_p []
+    in
     match List.rev tl with
     | [] -> e_fun start_p end_p hd b
     | l :: tl ->
@@ -94,5 +106,6 @@ module ParserAstUtils = struct
     match lvs with
     | [] -> b
     | hd :: tl ->
-        build_mul_e_fun start_p end_p hd tl b |> let_body start_p end_p []
+        value b |> lets |> fun lets ->
+        build_mul_e_fun start_p end_p hd tl b |> let_body start_p end_p lets
 end

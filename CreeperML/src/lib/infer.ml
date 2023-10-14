@@ -258,7 +258,7 @@ module InferUtils = struct
           (new_tuple ts, sb)
       | _ -> (t, sb)
     in
-    fun t -> fst (helper [] t)
+    fun t -> helper [] t |> fst
 end
 
 module Infer = struct
@@ -378,13 +378,18 @@ module Infer = struct
 
   (* type of let expression *)
   let tof_let =
-    let rec helper env { value = { rec_f; l_v; body }; pos = _ } =
+    let rec helper env { value = { rec_f; l_v; args; body }; pos = _ } =
       let open ExprRet in
       let open LetRet in
       let* rec_env =
-        if is_rec rec_f then
-          lvalue l_v >>= fun (n, t) -> bind_lv_typ env n t |> return
-        else return env
+        (if is_rec rec_f then lvalue l_v >>| fun (n, t) -> bind_lv_typ env n t
+         else return env)
+        |> fun env ->
+        List.fold_left
+          (fun env arg ->
+            let* env = env in
+            lvalue arg >>| fun (n, t) -> bind_lv_typ env n t)
+          env args
       in
       enter_lvl ();
       let* lets, inner_env =
@@ -403,8 +408,8 @@ module Infer = struct
       typ_let_body lets t_e.t_ast
       |> typ_let_binding rec_f (value l_v |> with_typ (remove_lvl typ))
       |> fun let_ast ->
-      lvalue l_v >>= fun (n, _) ->
-      bind_lv_typ env n typ |> fun env -> return ({ typ; let_ast }, env)
+      lvalue l_v >>| fun (n, _) ->
+      bind_lv_typ env n typ |> fun env -> ({ typ; let_ast }, env)
     in
     helper
 
@@ -412,13 +417,13 @@ module Infer = struct
   let top_expr_infer env expr =
     reset_typ_vars ();
     reset_lvls_to_update ();
-    tof_expr env expr >>= fun e -> ExprRet.ret_ast e |> return
+    tof_expr env expr >>| fun e -> ExprRet.ret_ast e
 
   (* top level let binding infer *)
   let top_let_infer env l =
     reset_typ_vars ();
     reset_lvls_to_update ();
-    tof_let env l >>= fun (l, _) -> LetRet.ret_let l |> return
+    tof_let env l >>| fun (l, _) -> LetRet.ret_let l
 
   (* top level inferencer *)
   let top_infer env prog =

@@ -20,7 +20,7 @@ module InferType = struct
   and 'a lvls = { value : 'a; mutable old_lvl : lvl; mutable new_lvl : lvl }
   and typ = ty lvls [@@deriving show { with_path = false }]
 
-  type env = (name * typ) list
+  type env = (name * typ) list [@@deriving show { with_path = false }]
 end
 
 module InferTypeUtils = struct
@@ -128,7 +128,7 @@ module TypeAstUtils = struct
     match lvl_value typ with
     | TVar { contents = Unbound (n, _) } -> ty_var n
     | TVar { contents = Link t } -> remove_lvl t
-    | TArrow (t1, t2) -> remove_lvl t1 |> fun t1 -> remove_lvl t2 |> ty_arrow t1
+    | TArrow (t1, t2) -> ty_arrow (remove_lvl t1) (remove_lvl t2)
     | TTuple ts -> List.map remove_lvl ts |> ty_tuple
     | TGround t -> ty_ground t
 end
