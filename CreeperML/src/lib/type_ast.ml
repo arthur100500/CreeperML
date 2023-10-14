@@ -145,20 +145,20 @@ module TypeAstUtils = struct
 
   let rec convert_expr : InferType.typ typ_expr -> ty typ_expr =
    fun { value = expr; typ } ->
-    match expr with
-    | TApply (l, r) ->
-        convert_expr r |> t_apply (convert_expr l) |> with_typ (remove_lvl typ)
-    | TLiteral l -> t_literal l |> with_typ (remove_lvl typ)
-    | TValue n -> t_value n |> with_typ (remove_lvl typ)
-    | TTuple es ->
-        List.map convert_expr es |> t_tuple |> with_typ (remove_lvl typ)
-    | TIfElse { cond; t_body; f_body } ->
-        t_if_else (convert_expr cond) (convert_expr t_body)
-          (convert_expr f_body)
-        |> with_typ (remove_lvl typ)
-    | TFun { lvalue; b } ->
-        with_typ (remove_lvl lvalue.typ) lvalue.value |> fun l_v ->
-        convert_body b |> t_fun l_v |> with_typ (remove_lvl typ)
+    let e : ty t_expr =
+      match expr with
+      | TApply (l, r) -> convert_expr r |> t_apply (convert_expr l)
+      | TLiteral l -> t_literal l
+      | TValue n -> t_value n
+      | TTuple es -> List.map convert_expr es |> t_tuple
+      | TIfElse { cond; t_body; f_body } ->
+          t_if_else (convert_expr cond) (convert_expr t_body)
+            (convert_expr f_body)
+      | TFun { lvalue; b } ->
+          with_typ (remove_lvl lvalue.typ) lvalue.value |> fun l_v ->
+          convert_body b |> t_fun l_v
+    in
+    e |> with_typ (remove_lvl typ)
 
   and convert_body : InferType.typ typ_let_body -> ty typ_let_body =
    fun body ->
