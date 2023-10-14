@@ -8,7 +8,7 @@ let lr =
   let bool_const = t_ground t_bool |> with_lvls 0 0 in
   let arr = t_arrow int_const bool_const |> with_lvls 0 0 in
   let lr = t_arrow int_const arr |> with_lvls 0 0 in
-  ("lor", lr)
+  ("<=", lr)
 
 let mi =
   let open CreeperML.Type_ast.InferTypeUtils in
@@ -27,16 +27,20 @@ let ml =
 let () =
   match
     CreeperML.Parser_interface.ParserInterface.from_string
-      {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|}
+      (* {|let f x = let g y = x - y in g|} *)
+      {|let rec fac n = if n <= 0 then 1 else fac (n - 1)|}
   with
   | Ok p -> (
+      (* List.iter
+         (fun l ->
+           CreeperML.Parser_ast.ParserAst.show_loc_let_binding l
+           |> Printf.printf "%s")
+         p; *)
       let p = CreeperML.Infer.Infer.top_infer [ lr; mi; ml ] p in
       match p with
       | Ok e ->
-          List.iter
-            (fun l ->
-              CreeperML.Type_ast.TypeAst.show_typ_let_binding l
-              |> Printf.printf "%s")
-            e
+          CreeperML.Type_ast.TypeAst.show_typ_program
+            CreeperML.Type_ast.TypeAst.pp_ty e
+          |> Printf.printf "%s"
       | Error err -> print_endline err)
   | Error err -> print_endline err
