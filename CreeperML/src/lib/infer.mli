@@ -11,11 +11,11 @@ module Infer : sig
   (* inferencers that gets parser ast and returns typed ast *)
 
   (* inferencer for expressions *)
-  val top_expr_infer : env -> loc_expr -> typ_expr t
+  val top_expr_infer : env -> loc_expr -> ty typ_expr t
 
   (* inferencer for let bindings *)
-  val top_let_infer : env -> loc_let_binding -> typ_let_binding t
+  val top_let_infer : env -> loc_let_binding -> ty typ_let_binding t
 
   (* high level inferencer *)
-  val top_infer : env -> program -> typ_program t
+  val top_infer : env -> program -> ty typ_program t
 end

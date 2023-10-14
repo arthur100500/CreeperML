@@ -96,58 +96,116 @@ module TypeAst : sig
     | TyVar of name
 
   (* expresion with his type *)
-  and 'a typed = { value : 'a; typ : ty }
+  (* InferType.typ to infer work *)
+  (* TypeAst.ty to infer result *)
+  and ('a, 'b) typed = { value : 'a; typ : 'b }
 
-  type typ_lvalue = lvalue typed
+  type 'ty typ_lvalue = (lvalue, 'ty) typed
 
-  type typ_let_binding = {
+  type 'ty typ_let_binding = {
     rec_f : rec_flag;
-    l_v : typ_lvalue;
-    body : typ_let_body;
+    l_v : 'ty typ_lvalue;
+    body : 'ty typ_let_body;
   }
 
-  and typ_let_body = { lets : typ_let_binding list; expr : typ_expr }
+  and 'ty typ_let_body = {
+    lets : 'ty typ_let_binding list;
+    expr : 'ty typ_expr;
+  }
 
-  and t_expr =
-    | TApply of typ_expr * typ_expr
+  and 'ty t_expr =
+    | TApply of 'ty typ_expr * 'ty typ_expr
     | TLiteral of literal
     | TValue of name
-    | TFun of tfun_body
-    | TTuple of typ_expr list
-    | TIfElse of tif_else
+    | TFun of 'ty tfun_body
+    | TTuple of 'ty typ_expr list
+    | TIfElse of 'ty tif_else
 
-  and tfun_body = { lvalue : typ_lvalue; b : typ_let_body }
-  and tif_else = { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
-  and typ_expr = t_expr typed
+  and 'ty tfun_body = { lvalue : 'ty typ_lvalue; b : 'ty typ_let_body }
 
-  type typ_program = typ_let_binding list
+  and 'ty tif_else = {
+    cond : 'ty typ_expr;
+    t_body : 'ty typ_expr;
+    f_body : 'ty typ_expr;
+  }
+
+  and 'ty typ_expr = ('ty t_expr, 'ty) typed
+
+  type 'ty typ_program = 'ty typ_let_binding list
 
   (* shows *)
   val show_ty : ty -> string
-  val show_typed : (Format.formatter -> 'a -> unit) -> 'a typed -> string
-  val show_typ_lvalue : typ_lvalue -> string
-  val show_typ_let_binding : typ_let_binding -> string
-  val show_typ_let_body : typ_let_body -> string
-  val show_tfun_body : tfun_body -> string
-  val show_tif_else : tif_else -> string
-  val show_t_expr : t_expr -> string
-  val show_typ_expr : typ_expr -> string
-  val show_typ_program : typ_program -> string
+
+  val show_typed :
+    (Format.formatter -> 'a -> unit) ->
+    (Format.formatter -> 'b -> unit) ->
+    ('a, 'b) typed ->
+    string
+
+  val show_typ_lvalue :
+    (Format.formatter -> 'a -> unit) -> 'a typ_lvalue -> string
+
+  val show_typ_let_binding :
+    (Format.formatter -> 'a -> unit) -> 'a typ_let_binding -> string
+
+  val show_typ_let_body :
+    (Format.formatter -> 'a -> unit) -> 'a typ_let_body -> string
+
+  val show_tfun_body :
+    (Format.formatter -> 'a -> unit) -> 'a tfun_body -> string
+
+  val show_tif_else : (Format.formatter -> 'a -> unit) -> 'a tif_else -> string
+  val show_t_expr : (Format.formatter -> 'a -> unit) -> 'a t_expr -> string
+  val show_typ_expr : (Format.formatter -> 'a -> unit) -> 'a typ_expr -> string
+
+  val show_typ_program :
+    (Format.formatter -> 'a -> unit) -> 'a typ_program -> string
 
   (* pps *)
   val pp_ty : Format.formatter -> ty -> unit
 
   val pp_typed :
-    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a typed -> unit
+    (Format.formatter -> 'a -> unit) ->
+    (Format.formatter -> 'b -> unit) ->
+    Format.formatter ->
+    ('a, 'b) typed ->
+    unit
 
-  val pp_typ_lvalue : Format.formatter -> typ_lvalue -> unit
-  val pp_typ_let_binding : Format.formatter -> typ_let_binding -> unit
-  val pp_typ_let_body : Format.formatter -> typ_let_body -> unit
-  val pp_tfun_body : Format.formatter -> tfun_body -> unit
-  val pp_tif_else : Format.formatter -> tif_else -> unit
-  val pp_t_expr : Format.formatter -> t_expr -> unit
-  val pp_typ_expr : Format.formatter -> typ_expr -> unit
-  val pp_typ_program : Format.formatter -> typ_program -> unit
+  val pp_typ_lvalue :
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter ->
+    'a typ_lvalue ->
+    unit
+
+  val pp_typ_let_binding :
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter ->
+    'a typ_let_binding ->
+    unit
+
+  val pp_typ_let_body :
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter ->
+    'a typ_let_body ->
+    unit
+
+  val pp_tfun_body :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a tfun_body -> unit
+
+  val pp_tif_else :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a tif_else -> unit
+
+  val pp_t_expr :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t_expr -> unit
+
+  val pp_typ_expr :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a typ_expr -> unit
+
+  val pp_typ_program :
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter ->
+    'a typ_program ->
+    unit
 end
 
 module TypeAstUtils : sig
@@ -158,21 +216,25 @@ module TypeAstUtils : sig
   val ty_tuple : ty list -> ty
   val ty_ground : InferType.ground_typ -> ty
   val ty_var : name -> ty
-  val typed_value : 'a typed -> 'a
-  val with_typ : ty -> 'a -> 'a typed
-  val typ : 'a typed -> ty
+  val typed_value : ('a, 'b) typed -> 'a
+  val with_typ : 'b -> 'a -> ('a, 'b) typed
+  val typ : ('a, 'b) typed -> 'b
 
   val typ_let_binding :
-    rec_flag -> typ_lvalue -> typ_let_body -> typ_let_binding
+    rec_flag -> 'a typ_lvalue -> 'a typ_let_body -> 'a typ_let_binding
 
-  val typ_let_body : typ_let_binding list -> typ_expr -> typ_let_body
-  val t_apply : typ_expr -> typ_expr -> t_expr
-  val t_literal : literal -> t_expr
-  val t_value : name -> t_expr
-  val t_fun : typ_lvalue -> typ_let_body -> t_expr
-  val t_tuple : typ_expr list -> t_expr
-  val t_if_else : typ_expr -> typ_expr -> typ_expr -> t_expr
+  val typ_let_body : 'a typ_let_binding list -> 'a typ_expr -> 'a typ_let_body
+  val t_apply : 'a typ_expr -> 'a typ_expr -> 'a t_expr
+  val t_literal : literal -> 'a t_expr
+  val t_value : name -> 'a t_expr
+  val t_fun : 'a typ_lvalue -> 'a typ_let_body -> 'a t_expr
+  val t_tuple : 'a typ_expr list -> 'a t_expr
+  val t_if_else : 'a typ_expr -> 'a typ_expr -> 'a typ_expr -> 'a t_expr
 
   (* removes infer's levels from types *)
   val remove_lvl : InferType.typ -> ty
+
+  (* convert inner ast type into outter ast type *)
+  val convert_expr : InferType.typ typ_expr -> ty typ_expr
+  val convert_let : InferType.typ typ_let_binding -> ty typ_let_binding
 end

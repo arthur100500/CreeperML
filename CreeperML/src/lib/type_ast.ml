@@ -74,32 +74,43 @@ module TypeAst = struct
     | TyGround of ground_typ
     | TyVar of name
 
-  and 'a typed = { value : 'a; typ : ty }
+  and ('a, 'b) typed = { value : 'a; typ : 'b }
   [@@deriving show { with_path = false }]
 
-  type typ_lvalue = lvalue typed [@@deriving show { with_path = false }]
+  type 'ty typ_lvalue = (lvalue, 'ty) typed
+  [@@deriving show { with_path = false }]
 
-  type typ_let_binding = {
+  type 'ty typ_let_binding = {
     rec_f : rec_flag;
-    l_v : typ_lvalue;
-    body : typ_let_body;
+    l_v : 'ty typ_lvalue;
+    body : 'ty typ_let_body;
   }
 
-  and typ_let_body = { lets : typ_let_binding list; expr : typ_expr }
+  and 'ty typ_let_body = {
+    lets : 'ty typ_let_binding list;
+    expr : 'ty typ_expr;
+  }
 
-  and t_expr =
-    | TApply of typ_expr * typ_expr
+  and 'ty t_expr =
+    | TApply of 'ty typ_expr * 'ty typ_expr
     | TLiteral of literal
     | TValue of name
-    | TFun of tfun_body
-    | TTuple of typ_expr list
-    | TIfElse of tif_else
+    | TFun of 'ty tfun_body
+    | TTuple of 'ty typ_expr list
+    | TIfElse of 'ty tif_else
 
-  and tfun_body = { lvalue : typ_lvalue; b : typ_let_body }
-  and tif_else = { cond : typ_expr; t_body : typ_expr; f_body : typ_expr }
-  and typ_expr = t_expr typed [@@deriving show { with_path = false }]
+  and 'ty tfun_body = { lvalue : 'ty typ_lvalue; b : 'ty typ_let_body }
 
-  type typ_program = typ_let_binding list
+  and 'ty tif_else = {
+    cond : 'ty typ_expr;
+    t_body : 'ty typ_expr;
+    f_body : 'ty typ_expr;
+  }
+
+  and 'ty typ_expr = ('ty t_expr, 'ty) typed
+  [@@deriving show { with_path = false }]
+
+  type 'ty typ_program = 'ty typ_let_binding list
   [@@deriving show { with_path = false }]
 end
 
@@ -131,4 +142,30 @@ module TypeAstUtils = struct
     | TArrow (t1, t2) -> ty_arrow (remove_lvl t1) (remove_lvl t2)
     | TTuple ts -> List.map remove_lvl ts |> ty_tuple
     | TGround t -> ty_ground t
+
+  let rec convert_expr : InferType.typ typ_expr -> ty typ_expr =
+   fun { value = expr; typ } ->
+    match expr with
+    | TApply (l, r) ->
+        convert_expr r |> t_apply (convert_expr l) |> with_typ (remove_lvl typ)
+    | TLiteral l -> t_literal l |> with_typ (remove_lvl typ)
+    | TValue n -> t_value n |> with_typ (remove_lvl typ)
+    | TTuple es ->
+        List.map convert_expr es |> t_tuple |> with_typ (remove_lvl typ)
+    | TIfElse { cond; t_body; f_body } ->
+        t_if_else (convert_expr cond) (convert_expr t_body)
+          (convert_expr f_body)
+        |> with_typ (remove_lvl typ)
+    | TFun { lvalue; b } ->
+        with_typ (remove_lvl lvalue.typ) lvalue.value |> fun l_v ->
+        convert_body b |> t_fun l_v |> with_typ (remove_lvl typ)
+
+  and convert_body : InferType.typ typ_let_body -> ty typ_let_body =
+   fun body ->
+    typ_let_body (List.map convert_let body.lets) (convert_expr body.expr)
+
+  and convert_let : InferType.typ typ_let_binding -> ty typ_let_binding =
+   fun { rec_f; l_v; body } ->
+    let l_v = with_typ (remove_lvl l_v.typ) l_v.value in
+    convert_body body |> typ_let_binding rec_f l_v
 end
