@@ -30,5 +30,6 @@ jobs:
       - name: Build project
         run: |
           opam install --deps-only --with-test .
+          cd CreeperML
           opam exec -- dune build
           opam exec -- dune fmt
