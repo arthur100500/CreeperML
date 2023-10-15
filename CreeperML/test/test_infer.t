@@ -1,8 +1,11 @@
   $ ./test_infer.exe <<- EOF
-  > let rec fac n =
-  > if n <= 0 then
-  > 1
+  > let fac n =
+  > let rec helper n acc =
+  > if n <= 1 then 
+  > acc
   > else
-  > fac (n - 1)
+  > helper (n - 1) (n * acc)
+  > in
+  > helper n 1
   > EOF
   (TyArrow ((TyGround TInt), (TyGround TInt)))
