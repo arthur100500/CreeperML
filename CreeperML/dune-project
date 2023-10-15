@@ -21,7 +21,7 @@
  (name CreeperML)
  (synopsis "Compiler for MiniML language")
  (description "Student project compiler for self MiniML language")
- (depends ocaml dune ppx_expect ppx_deriving bisect_ppx)
+ (depends ocaml dune ppx_expect ppx_deriving.show bisect_ppx)
  (tags
   ("MiniML" "Compiler" "CreeperML" "OCaml")))
 
