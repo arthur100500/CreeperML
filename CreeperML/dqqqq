@@ -1,0 +1,376 @@
+DUNE-EXEC(1)                      Dune Manual                     DUNE-EXEC(1)
+
+
+
+NNAAMMEE
+       dune-exec - Execute a command in a similar environment as if
+       installation was performed.
+
+SSYYNNOOPPSSIISS
+       dduunnee eexxeecc [_O_P_T_I_O_N]… _P_R_O_G [_A_R_G_S]…
+
+DDEESSCCRRIIPPTTIIOONN
+       dduunnee eexxeecc ---- CCOOMMMMAANNDD should behave in the same way as if you do:
+
+         $ dune install
+         $ COMMAND
+
+       In particular if you run dduunnee eexxeecc ooccaammll, you will have access to the
+       libraries defined in the workspace using your usual directives
+       (##rreeqquuiirree for instance)
+
+       When a leading / is present in the command (absolute path), then the
+       path is interpreted as an absolute path
+
+       When a / is present at any other position (relative path), then the
+       path is interpreted as relative to the build context + current working
+       directory (or the value of ----rroooott when ran outside of the project root)
+
+OOPPTTIIOONNSS
+       ----aaccttiioonn--ssttddeerrrr--oonn--ssuucccceessss=_V_A_L
+           Same as ----aaccttiioonn--ssttddoouutt--oonn--ssuucccceessss but for the standard output for
+           error messages. A good default for large mono-repositories is
+           ----aaccttiioonn--ssttddoouutt--oonn--ssuucccceessss==sswwaallllooww
+           ----aaccttiioonn--ssttddeerrrr--oonn--ssuucccceessss==mmuusstt--bbee--eemmppttyy. This ensures that a
+           successful build has a "clean" empty output.
+
+       ----aaccttiioonn--ssttddoouutt--oonn--ssuucccceessss=_V_A_L
+           Specify how to deal with the standard output of actions when they
+           succeed. Possible values are: pprriinntt to just print it to Dune's
+           output, sswwaallllooww to completely ignore it and mmuusstt--bbee--eemmppttyy to
+           enforce that the action printed nothing. With mmuusstt--bbee--eemmppttyy, Dune
+           will consider that the action failed if it printed something to its
+           standard output. The default is pprriinntt.
+
+       ----bbuuiilldd--iinnffoo
+           Show build information.
+
+       ----ccoonntteexxtt=_C_O_N_T_E_X_T (absent=ddeeffaauulltt)
+           Run the command in this build context.
+
+       ----ddiissppllaayy--sseeppaarraattee--mmeessssaaggeess
+           Separate error messages with a blank line.
+
+       ----eerrrroorr--rreeppoorrttiinngg=_V_A_L (absent=eeaarrllyy)
+           Controls when the build errors are reported. eeaarrllyy - report errors
+           as soon as they are discovered. ddeetteerrmmiinniissttiicc - report errors at
+           the end of the build in a deterministic order. ttwwiiccee - report each
+           error twice: once as soon as the error is discovered and then again
+           at the end of the build, in a deterministic order.
+
+       --ff, ----ffoorrccee
+           Force actions associated to aliases to be re-executed even if their
+           dependencies haven't changed.
+
+       ----ffiillee--wwaattcchheerr=_V_A_L (absent=aauuttoommaattiicc)
+           Mechanism to detect changes in the source. Automatic to make dune
+           run an external program to detect changes. Manual to notify dune
+           that files have changed manually."
+
+       ----nnoo--bbuuiilldd
+           don't rebuild target before executing
+
+       ----ppaassssiivvee--wwaattcchh--mmooddee
+           Similar to [--watch], but only start a build when instructed
+           externally by an RPC.
+
+       ----rreeaacctt--ttoo--iinnssiiggnniiffiiccaanntt--cchhaannggeess
+           react to insignificant file system changes; this is only useful for
+           benchmarking dune
+
+       ----ssaannddbbooxx=_V_A_L (absent DDUUNNEE__SSAANNDDBBOOXX env)
+           Sandboxing mode to use by default. Some actions require a certain
+           sandboxing mode, so they will ignore this setting. The allowed
+           values are: none, symlink, copy, hardlink.
+
+       --ww, ----wwaattcchh
+           Instead of terminating build after completion, wait continuously
+           for file changes.
+
+       ----wwaaiitt--ffoorr--ffiilleessyysstteemm--cclloocckk
+           Dune digest file contents for better incrementally. These digests
+           are themselves cached. In some cases, Dune needs to drop some
+           digest cache entries in order for things to be reliable. This
+           option makes Dune wait for the file system clock to advance so that
+           it doesn't need to drop anything. You should probably not care
+           about this option; it is mostly useful for Dune developers to make
+           Dune tests of the digest cache more reproducible.
+
+CCOOMMMMOONN OOPPTTIIOONNSS
+       These options are common to all commands.
+
+       ----aallwwaayyss--sshhooww--ccoommmmaanndd--lliinnee
+           Always show the full command lines of programs executed by dune
+
+       ----aauuttoo--pprroommoottee
+           Automatically promote files. This is similar to running dduunnee
+           pprroommoottee after the build.
+
+       ----bbuuiilldd--ddiirr=_F_I_L_E (absent DDUUNNEE__BBUUIILLDD__DDIIRR env)
+           Specified build directory. _build if unspecified
+
+       ----ccaacchhee=_V_A_L (absent DDUUNNEE__CCAACCHHEE env)
+           Enable or disable Dune cache (either eennaabblleedd or ddiissaabblleedd). Default
+           is `disabled'.
+
+       ----ccaacchhee--cchheecckk--pprroobbaabbiilliittyy=_V_A_L (absent DDUUNNEE__CCAACCHHEE__CCHHEECCKK__PPRROOBBAABBIILLIITTYY env)
+           Check build reproducibility by re-executing randomly chosen rules
+           and comparing their results with those stored in Dune cache. Note:
+           by increasing the probability of such checks you slow down the
+           build. The default probability is zero, i.e. no rules are checked.
+
+       ----ccaacchhee--ssttoorraaggee--mmooddee=_V_A_L (absent DDUUNNEE__CCAACCHHEE__SSTTOORRAAGGEE__MMOODDEE env)
+           Dune cache storage mode (one of aauuttoo, hhaarrddlliinnkk or ccooppyy). Default is
+           `auto'.
+
+       ----ccoonnffiigg--ffiillee=_F_I_L_E
+           Load this configuration file instead of the default one.
+
+       ----ddeebbuugg--aarrttiiffaacctt--ssuubbssttiittuuttiioonn
+           Print debugging info about artifact substitution
+
+       ----ddeebbuugg--bbaacckkttrraacceess
+           Always print exception backtraces.
+
+       ----ddeebbuugg--ccaacchhee=_V_A_L
+           Show debug messages on cache misses for the given cache layers.
+           Value is a comma-separated list of cache layer names. All available
+           cache layers: shared,workspace-local,fs.
+
+       ----ddeebbuugg--ddeeppeennddeennccyy--ppaatthh
+           In case of error, print the dependency path from the targets on the
+           command line to the rule that failed.
+
+       ----ddeebbuugg--ddiiggeessttss
+           Explain why Dune decides to re-digest some files
+
+       ----ddeebbuugg--llooaadd--ddiirr
+           Print debugging info about directory loading
+
+       ----ddeebbuugg--ssttoorree--ddiiggeesstt--pprreeiimmaaggee
+           Store digest preimage for all computed digests, so that it's
+           possible to reverse them later, for debugging. The digests are
+           stored in the shared cache (see --cache flag) as values, even if
+           cache is otherwise disabled. This should be used only for
+           debugging, since it's slow and it litters the shared cache.
+
+       ----ddeeffaauulltt--ttaarrggeett=_T_A_R_G_E_T (absent=@@@@ddeeffaauulltt)
+           Set the default target that when none is specified to dduunnee bbuuiilldd.
+
+       ----ddiiffff--ccoommmmaanndd=_V_A_L (absent DDUUNNEE__DDIIFFFF__CCOOMMMMAANNDD env)
+           Shell command to use to diff files. Use - to disable printing the
+           diff.
+
+       ----ddiissaabbllee--pprroommoottiioonn (absent DDUUNNEE__DDIISSAABBLLEE__PPRROOMMOOTTIIOONN env)
+           Disable all promotion rules
+
+       ----ddiissppllaayy=_M_O_D_E
+           Control the display mode of Dune. See dduunnee--ccoonnffiigg((55)) for more
+           details. Valid values for this option are progress, verbose, short,
+           quiet or tui.
+
+       ----dduummpp--ggcc--ssttaattss=_F_I_L_E
+           Dump the garbage collector stats to a file after the build is
+           complete.
+
+       ----dduummpp--mmeemmoo--ggrraapphh=_F_I_L_E
+           Dumps the dependency graph to a file after the build is complete
+
+       ----dduummpp--mmeemmoo--ggrraapphh--ffoorrmmaatt=_F_O_R_M_A_T (absent=ggeexxff)
+           File format to be used when dumping dependency graph
+
+       ----dduummpp--mmeemmoo--ggrraapphh--wwiitthh--ttiimmiinngg
+           With ----dduummpp--mmeemmoo--ggrraapphh, will re-run each cached node in the Memo
+           graph after building and include the runtime in the output. Since
+           all nodes contain a cached value, this will measure just the
+           runtime of each node
+
+       ----hheellpp[=_F_M_T] (default=aauuttoo)
+           Show this help in format _F_M_T. The value _F_M_T must be one of aauuttoo,
+           ppaaggeerr, ggrrooffff or ppllaaiinn. With aauuttoo, the format is ppaaggeerr or ppllaaiinn
+           whenever the TTEERRMM env var is dduummbb or undefined.
+
+       ----iiggnnoorree--pprroommootteedd--rruulleess
+           Ignore rules with (mode promote), except ones with (only ...). The
+           variable %{ignoring_promoted_rules} in dune files reflects whether
+           this option was passed or not.
+
+       ----iinnssttrruummeenntt--wwiitthh=_B_A_C_K_E_N_D_S (absent DDUUNNEE__IINNSSTTRRUUMMEENNTT__WWIITTHH env)
+           "Enable instrumentation by BBAACCKKEENNDDSS. BBAACCKKEENNDDSS is a comma-separated
+           list of library names, each one of which must declare an
+           instrumentation backend.
+
+       --jj _J_O_B_S
+           Run no more than _J_O_B_S commands simultaneously.
+
+       ----nnoo--bbuuffffeerr
+           Do not buffer the output of commands executed by dune. By default
+           dune buffers the output of subcommands, in order to prevent
+           interleaving when multiple commands are executed in parallel.
+           However, this can be an issue when debugging long running tests.
+           With ----nnoo--bbuuffffeerr, commands have direct access to the terminal. Note
+           that as a result their output won't be captured in the log file.
+           You should use this option in conjunction with --jj 11, to avoid
+           interleaving. Additionally you should use ----vveerrbboossee as well, to
+           make sure that commands are printed before they are being executed.
+
+       ----nnoo--ccoonnffiigg
+           Do not load the configuration file
+
+       ----nnoo--pprriinntt--ddiirreeccttoorryy
+           Suppress "Entering directory" messages
+
+       ----oonnllyy--ppaacckkaaggeess=_P_A_C_K_A_G_E_S
+           Ignore stanzas referring to a package that is not in PPAACCKKAAGGEESS.
+           PPAACCKKAAGGEESS is a comma-separated list of package names. Note that this
+           has the same effect as deleting the relevant stanzas from dune
+           files. It is mostly meant for releases. During development, it is
+           likely that what you want instead is to build a particular
+           <<ppaacckkaaggee>>..iinnssttaallll target.
+
+       --pp _P_A_C_K_A_G_E_S, ----ffoorr--rreelleeaassee--ooff--ppaacckkaaggeess=_P_A_C_K_A_G_E_S (required)
+           Shorthand for ----rreelleeaassee ----oonnllyy--ppaacckkaaggeess PPAACCKKAAGGEE. You must use this
+           option in your _<_p_a_c_k_a_g_e_>_._o_p_a_m files, in order to build only what's
+           necessary when your project contains multiple packages as well as
+           getting reproducible builds.
+
+       ----pprriinntt--mmeettrriiccss
+           Print out various performance metrics after every build
+
+       ----pprrooffiillee=_V_A_L (absent DDUUNNEE__PPRROOFFIILLEE env)
+           Select the build profile, for instance ddeevv or rreelleeaassee. The default
+           is ddeevv.
+
+       ----pprroommoottee--iinnssttaallll--ffiilleess[=_V_A_L] (default=ttrruuee)
+           Promote the generated <package>.install files to the source tree
+
+       ----rreelleeaassee
+           Put dduunnee into a reproducible _r_e_l_e_a_s_e mode. This is in fact a
+           shorthand for ----rroooott .. ----iiggnnoorree--pprroommootteedd--rruulleess ----nnoo--ccoonnffiigg
+           ----pprrooffiillee rreelleeaassee ----aallwwaayyss--sshhooww--ccoommmmaanndd--lliinnee
+           ----pprroommoottee--iinnssttaallll--ffiilleess ----ddeeffaauulltt--ttaarrggeett @@iinnssttaallll
+           ----rreeqquuiirree--dduunnee--pprroojjeecctt--ffiillee. You should use this option for release
+           builds. For instance, you must use this option in your
+           _<_p_a_c_k_a_g_e_>_._o_p_a_m files. Except if you already use --pp, as --pp implies
+           this option.
+
+       ----rreeqquuiirree--dduunnee--pprroojjeecctt--ffiillee[=_V_A_L] (default=ttrruuee)
+           Fail if a dune-project file is missing.
+
+       ----rroooott=_D_I_R
+           Use this directory as workspace root instead of guessing it. Note
+           that this option doesn't change the interpretation of targets given
+           on the command line. It is only intended for scripts.
+
+       ----ssttoorree--oorriigg--ssoouurrccee--ddiirr (absent DDUUNNEE__SSTTOORREE__OORRIIGG__SSOOUURRCCEE__DDIIRR env)
+           Store original source location in dune-package metadata
+
+       ----tteerrmmiinnaall--ppeerrssiisstteennccee=_M_O_D_E
+           Changes how the log of build results are displayed to the console
+           between rebuilds while in ----wwaattcchh mode. Supported modes: pprreesseerrvvee,
+           cclleeaarr--oonn--rreebbuuiilldd, cclleeaarr--oonn--rreebbuuiilldd--aanndd--fflluusshh--hhiissttoorryy.
+
+       ----ttrraaccee--eexxtteennddeedd
+           Output extended trace data (requires trace-file)
+
+       ----ttrraaccee--ffiillee=_F_I_L_E
+           Output trace data in catapult format (compatible with
+           chrome://tracing)
+
+       ----vveerrbboossee
+           Same as ----ddiissppllaayy vveerrbboossee
+
+       ----vveerrssiioonn
+           Show version information.
+
+       ----wwaattcchh--eexxcclluussiioonnss=_R_E_G_E_X
+           Adds a POSIX regular expression that will exclude matching
+           directories from ``dduunnee bbuuiilldd ----wwaattcchh``. The option
+           ----wwaattcchh--eexxcclluussiioonnss can be repeated to add multiple exclusions.
+           Semicolons can be also used as a separator. If no exclusions are
+           provided, then a standard set of exclusions is used; however, if
+           _o_n_e _o_r _m_o_r_e ----wwaattcchh--eexxcclluussiioonnss are used, nnoonnee of the standard
+           exclusions are used. The standard exclusions are: ^_opam /_opam
+           ^_esy /_esy ^\.#.* /\.#.* ~$ ^#[^#]*#$ /#[^#]*#$ ^4913$ /4913$
+           /.git /.hg :/windows
+
+       ----wwoorrkkssppaaccee=_F_I_L_E (absent DDUUNNEE__WWOORRKKSSPPAACCEE env)
+           Use this specific workspace file instead of looking it up.
+
+       --xx _V_A_L
+           Cross-compile using this toolchain.
+
+MMOORREE HHEELLPP
+       Use `dduunnee _C_O_M_M_A_N_D --help' for help on a single command.
+
+EEXXIITT SSTTAATTUUSS
+       eexxeecc exits with the following status:
+
+       0   on success.
+
+       1   if an error happened.
+
+       130 if it was interrupted by a signal.
+
+EENNVVIIRROONNMMEENNTT
+       These environment variables affect the execution of eexxeecc:
+
+       DDUUNNEE__BBUUIILLDD__DDIIRR
+           Specified build directory. _build if unspecified
+
+       DDUUNNEE__CCAACCHHEE
+           Enable or disable Dune cache (either eennaabblleedd or ddiissaabblleedd). Default
+           is `disabled'.
+
+       DDUUNNEE__CCAACCHHEE__CCHHEECCKK__PPRROOBBAABBIILLIITTYY
+           Check build reproducibility by re-executing randomly chosen rules
+           and comparing their results with those stored in Dune cache. Note:
+           by increasing the probability of such checks you slow down the
+           build. The default probability is zero, i.e. no rules are checked.
+
+       DDUUNNEE__CCAACCHHEE__SSTTOORRAAGGEE__MMOODDEE
+           Dune cache storage mode (one of aauuttoo, hhaarrddlliinnkk or ccooppyy). Default is
+           `auto'.
+
+       DDUUNNEE__DDIIFFFF__CCOOMMMMAANNDD
+           Shell command to use to diff files. Use - to disable printing the
+           diff.
+
+       DDUUNNEE__DDIISSAABBLLEE__PPRROOMMOOTTIIOONN
+           Disable all promotion rules
+
+       DDUUNNEE__IINNSSTTRRUUMMEENNTT__WWIITTHH
+           "Enable instrumentation by BBAACCKKEENNDDSS. BBAACCKKEENNDDSS is a comma-separated
+           list of library names, each one of which must declare an
+           instrumentation backend.
+
+       DDUUNNEE__PPRROOFFIILLEE
+           Build profile. ddeevv if unspecified or rreelleeaassee if -p is set.
+
+       DDUUNNEE__SSAANNDDBBOOXX
+           Sandboxing mode to use by default. (see --sandbox)
+
+       DDUUNNEE__SSTTOORREE__OORRIIGG__SSOOUURRCCEE__DDIIRR
+           Store original source location in dune-package metadata
+
+       DDUUNNEE__WWOORRKKSSPPAACCEE
+           Use this specific workspace file instead of looking it up.
+
+BBUUGGSS
+       Check bug reports at https://github.com/ocaml/dune/issues
+
+SSEEEE AALLSSOO
+       dune(1)
+
+EEXXAAMMPPLLEESS
+       1.  Run the executable named `my_exec':
+
+             dune exec my_exec
+
+       2.  Run the executable defined in `foo.ml' with the argument `arg':
+
+             dune exec -- ./foo.exe arg
+
+
+
+Dune 3.10.0                                                       DUNE-EXEC(1)

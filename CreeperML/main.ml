@@ -2,6 +2,14 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
+open Result
+
+(* open CreeperML.Anf_type_ast.AnfTypeAst *)
+open CreeperML.Infer.Infer
+open CreeperML.Parser_interface.ParserInterface
+open CreeperML.Closureconvert.ClosureConvert
+open CreeperML.Closureconvert.ClosureAst
+
 let lr =
   let open CreeperML.Type_ast.InferTypeUtils in
   let int_const = t_ground t_int |> with_lvls 0 0 in
@@ -25,22 +33,27 @@ let ml =
   ("*", ml)
 
 let () =
-  match
-    CreeperML.Parser_interface.ParserInterface.from_string
-      (* {|let f x = let g y = x - y in g|} *)
-      {|let rec fac n = if n <= 0 then 1 else fac (n - 1)|}
-  with
-  | Ok p -> (
-      (* List.iter
-         (fun l ->
-           CreeperML.Parser_ast.ParserAst.show_loc_let_binding l
-           |> Printf.printf "%s")
-         p; *)
-      let p = CreeperML.Infer.Infer.top_infer [ lr; mi; ml ] p in
-      match p with
-      | Ok e ->
-          CreeperML.Type_ast.TypeAst.show_typ_program
-            CreeperML.Type_ast.TypeAst.pp_ty e
-          |> Printf.printf "%s"
-      | Error err -> print_endline err)
-  | Error err -> print_endline err
+  let ( >>= ) = Result.bind in
+
+  (* let show_program =
+       List.iter (fun l ->
+           CreeperML.Type_ast.TypeAst.show_typ_let_binding l |> Printf.printf "%s")
+     in *)
+  let input_program =
+    (* {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|} *)
+    {|let f x = let g y = x - y in g|}
+  in
+  let apply_closure_convert p = Ok (cf_program p) in
+  let apply_infer p = top_infer [ lr; mi; ml ] p in
+  let apply_parser = from_string in
+  (* let apply_anf x = Ok (anf_of_program x) in
+     let print_ast x = show_anf_program x |> print_endline in*)
+  apply_parser input_program >>= apply_infer >>= apply_closure_convert
+  |> function
+  | Ok x -> show_cf_program x |> print_endline
+  | Error x -> print_endline x
+(*| Ok x -> show_program x
+  | _ -> ()
+  >>= apply_anf |> function
+  | Ok x -> print_ast x
+  | Error x -> print_endline x*)
