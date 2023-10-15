@@ -58,5 +58,5 @@ module ClosureConvert : sig
   open ClosureAst
   open Type_ast.TypeAst
 
-  val cf_program : typ_program -> cf_typ_program
+  val cf_program : typ_program -> string typed list -> cf_typ_program
 end

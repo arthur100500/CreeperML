@@ -45,6 +45,13 @@ module ClosureAst = struct
   type cf_typ_program = cf_binding list [@@deriving show { with_path = false }]
 
   (* Cool print *)
+  let print_env_vars st (c : name typed list) =
+    List.fold_left
+      (fun xs (x : name typed) ->
+        Format.sprintf "[%s %s] %s" x.value (st x.typ) xs)
+      "" c
+    |> Format.sprintf "[%s]"
+
   let rec print_cf_expr st (e : cf_typ_expr) =
     match e.value with
     | CFApply (x, y) ->
@@ -78,8 +85,8 @@ module ClosureAst = struct
             intd
             (List.map (fun x -> ValBinding x) x.cf_body.cf_lets)
         in
-        Format.sprintf "%slet (%s%s) = %s\n%s  %s" intd lval (st x.l_v.typ) lets
-          intd
+        Format.sprintf "%slet (%s%s) = %s\n%s  %s\n\n" intd lval (st x.l_v.typ)
+          lets intd
           (print_cf_expr st x.cf_body.cf_expr)
     | FunBinding x ->
         let lval = x.name.value in
@@ -89,8 +96,15 @@ module ClosureAst = struct
             intd
             (List.map (fun x -> ValBinding x) x.b.cf_lets)
         in
-        Format.sprintf "%sletf (%s%s) = %s\n%s  %s" intd lval (st x.name.typ)
-          lets intd
+        let args =
+          List.fold_left
+            (fun xs (x : typ_lvalue) ->
+              Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
+            "" x.args
+        in
+        let env_vals = print_env_vars st x.env_vars in
+        Format.sprintf "%sletf %s %s%s %s= %s\n%s  %s\n\n" intd lval args
+          (st x.name.typ) env_vals lets intd
           (print_cf_expr st x.b.cf_expr)
 
   let do_show_type t = ": " ^ show_ty t
@@ -109,7 +123,7 @@ module ClosureConvert = struct
   module TypedName = struct
     type t = name typed
 
-    let compare = compare
+    let compare (n1 : t) (n2 : t) = compare n1.value n2.value
   end
 
   module NameSet = Set.Make (TypedName)
@@ -138,6 +152,24 @@ module ClosureConvert = struct
     | _ -> failwith "Incorrectly typed ast"
 
   let rec collect_unbound_variables (f : tfun_body) global_bindings =
+    let rec collect_variables_in_expr (e : typ_expr) =
+      match e.value with
+      | TApply (left, right) ->
+          let left = collect_variables_in_expr left in
+          let right = collect_variables_in_expr right in
+          NameSet.union left right
+      | TLiteral _ -> NameSet.empty
+      | TValue name -> NameSet.singleton @@ typed e.typ name
+      | TTuple exprs ->
+          List.fold_left NameSet.union NameSet.empty
+            (List.map collect_variables_in_expr exprs)
+      | TIfElse ite ->
+          let i = collect_variables_in_expr ite.cond in
+          let t = collect_variables_in_expr ite.t_body in
+          let e = collect_variables_in_expr ite.f_body in
+          NameSet.union i t |> NameSet.union e
+      | TFun f -> collect_unbound_variables f global_bindings
+    in
     let rec collect_variables_in_let (l : typ_let_binding) =
       let e = NameSet.empty in
       let inner =
@@ -153,6 +185,7 @@ module ClosureConvert = struct
       List.fold_left
         (fun xs x -> NameSet.union xs @@ collect_variables_in_let x)
         e b.lets
+      |> NameSet.union @@ collect_variables_in_expr b.expr
     in
     let known = NameSet.union global_bindings @@ typ_names_of_lvalue f.lvalue in
     let unknown = collect_variables_in_body f.b in
@@ -215,7 +248,8 @@ module ClosureConvert = struct
     in
     (List.concat inner_closures @ closures, cf_let_binding)
 
-  and cf_program (prog : typ_program) : cf_typ_program =
+  and cf_program (prog : typ_program) (globals : name typed list) :
+      cf_typ_program =
     let rec inner g (p : typ_program) acc =
       match p with
       | h :: t ->
@@ -224,8 +258,9 @@ module ClosureConvert = struct
           let binding = ValBinding binding in
           let u = NameSet.union in
           let g = u (typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ)) g in
-          (binding :: closures) @ acc |> inner g t
+          (closures @ [ binding ]) @ acc |> inner g t
       | [] -> acc
     in
-    inner NameSet.empty prog []
+    let set = NameSet.of_list globals in
+    inner set prog []
 end

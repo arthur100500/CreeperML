@@ -7,6 +7,7 @@ open Result
 (* open CreeperML.Anf_type_ast.AnfTypeAst *)
 open CreeperML.Infer.Infer
 open CreeperML.Parser_interface.ParserInterface
+open CreeperML.Type_ast.TypeAst
 open CreeperML.Closureconvert.ClosureConvert
 open CreeperML.Closureconvert.ClosureAst
 
@@ -32,6 +33,8 @@ let ml =
   let ml = t_arrow int_const arr |> with_lvls 0 0 in
   ("*", ml)
 
+let typed t a : 'a typed = { value = a; typ = t }
+
 let () =
   let ( >>= ) = Result.bind in
 
@@ -41,9 +44,16 @@ let () =
      in *)
   let input_program =
     (* {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|} *)
-    {|let f x = let g y = x - y in g|}
+    {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|}
   in
-  let apply_closure_convert p = Ok (cf_program p) in
+  let globals =
+    [
+      typed
+        (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
+        "-";
+    ]
+  in
+  let apply_closure_convert p = Ok (cf_program p globals) in
   let apply_infer p = top_infer [ lr; mi; ml ] p in
   let apply_parser = from_string in
   (* let apply_anf x = Ok (anf_of_program x) in
