@@ -33,7 +33,7 @@ let ml =
   let ml = t_arrow int_const arr |> with_lvls 0 0 in
   ("*", ml)
 
-let typed t a : 'a typed = { value = a; typ = t }
+let typed t a : ('a, ty) typed = { value = a; typ = t }
 
 let () =
   let ( >>= ) = Result.bind in
@@ -44,13 +44,28 @@ let () =
      in *)
   let input_program =
     (* {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|} *)
-    {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|}
+    {|let f x = 
+        let g y =
+          let z = x - y in
+          z - 3
+        in
+        g
+
+      let a = f 10
+      let b = a 11
+    |}
   in
   let globals =
     [
       typed
+        (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TBool))
+        "<=";
+      typed
         (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
         "-";
+      typed
+        (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
+        "*";
     ]
   in
   let apply_closure_convert p = Ok (cf_program p globals) in
