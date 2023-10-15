@@ -109,3 +109,7 @@ module ParserAstUtils = struct
         value b |> lets |> fun lets ->
         build_mul_e_fun start_p end_p hd tl b |> let_body start_p end_p lets
 end
+
+let%expect_test _ =
+  Printf.printf {|Hello, world!|};
+  [%expect {|Hello, world!|}]
