@@ -12,6 +12,10 @@ bug-reports: "https://github.com/Tozarin/CreeperML/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.10"}
+  "ppx_expect"
+  "ppx_deriving"
+  "angstrom"
+  "bisect_ppx"
   "odoc" {with-doc}
 ]
 build: [
