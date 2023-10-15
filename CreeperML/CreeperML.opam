@@ -4,7 +4,7 @@ synopsis: "Compiler for MiniML language"
 description: "Student project compiler for self MiniML language"
 maintainer: ["https://github.com/Tozarin"]
 authors: ["Startsev Matvey and Alekseev Aurthur"]
-license: "LICENSE"
+license: "LGPL-3.0"
 tags: ["MiniML" "Compiler" "CreeperML" "OCaml"]
 homepage: "https://github.com/Tozarin/CreeperML"
 doc: "https://github.com/Tozarin/CreeperML"
@@ -13,8 +13,7 @@ depends: [
   "ocaml"
   "dune" {>= "3.10"}
   "ppx_expect"
-  "ppx_deriving"
-  "angstrom"
+  "ppx_deriving.show"
   "bisect_ppx"
   "odoc" {with-doc}
 ]

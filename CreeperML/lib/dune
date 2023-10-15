@@ -20,4 +20,6 @@
  (flags :standard -color always -safe-string -warn-error -a+8 -w -50)
  (preprocess
   (pps ppx_expect ppx_deriving.show ppx_compare))
- (inline_tests))
+ (inline_tests)
+ (instrumentation
+  (backend bisect_ppx)))
