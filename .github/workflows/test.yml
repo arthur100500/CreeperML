@@ -34,6 +34,7 @@ jobs:
           opam exec -- dune build
       - name: Run tests
         run: |
+          cd CreeperML
           opam exec -- dune runtest --instrument-with bisect_ppx --force
           opam exec -- bisect-ppx-report send-to Coveralls
         env:
