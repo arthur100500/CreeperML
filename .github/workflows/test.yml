@@ -29,8 +29,8 @@ jobs:
 
       - name: Build project
         run: |
-          opam install --deps-only --with-test .
           cd CreeperML
+          opam install --deps-only --with-test .
           opam exec -- dune build
       - name: Run tests
         run: |
