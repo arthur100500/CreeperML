@@ -1,205 +1,192 @@
-(*module AnfTypeAst = struct
-    open Type_ast.TypeAst
-    open Parser_ast.ParserAst
-    open Position.Position
+module AnfTypeAst = struct
+  open Type_ast.TypeAst
+  open Parser_ast.ParserAst
+  open Position.Position
+  open Closureconvert.ClosureAst
+  open Db.DbTypeAst
 
-    (* generator of de breujn names (super counter) *)
-    let name_count = ref 0
+  type tlvalue = db_lvalue
+  type tliteral = (literal, ty) typed
+  type tname = (int, ty) typed
+  type imm = ImmVal of tname | ImmLit of tliteral
 
-    let gen_name () =
-      name_count := !name_count + 1;
-      !name_count
+  type anf_expr =
+    | AApply of imm * imm
+    | ATuple of imm list
+    | AITE of
+        anf_body * anf_body * anf_body (* It's not imm for lazy evaluation *)
+    | AImm of imm
+    | ATupleAccess of imm * int (* Get rid of lvalues *)
 
-    (* mapping of existing names to de breujn variants *)
-    module NameMap = Map.Make (String)
+  and anf_body = { lets : anf_val_binding list; res : imm }
+  and anf_val_binding = { name : tname; e : anf_expr }
 
-    (* Typed AST in ANF and De breujn indices *)
-    type ilvalue = ILvUnit | ILvValue of int | ILvTuple of ilvalue list | ILvAny
-    [@@deriving show { with_path = false }]
+  type anf_fun_binding = { name : tname; arg : tname; body : anf_body }
+  type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
+  type anf_program = anf_binding list
 
-    type db_name = ilvalue typed [@@deriving show { with_path = false }]
+  (* Cool print *)
+  let print_imm st = function
+    | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
+    | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
 
-    type imm = ImmVal of int typed | ImmLit of literal typed
-    [@@deriving show { with_path = false }]
-
-    (* Exprs with simple apply, tuples, vals and literals, ite constructions *)
-    type anf_expr =
-      | AApply of imm * imm
-      | ATuple of imm list
-      | AITE of imm * imm * imm
-    [@@deriving show { with_path = false }]
-
-    (* Let wit arguments and expr (name, args, res)*)
-    type anf_let = { name : int typed; expr : anf_expr }
-    [@@deriving show { with_path = false }]
-
-    type fun_let = {
-      is_rec : bool;
-      name : int typed;
-      arg : db_name;
-      lets : let_binding list;
-      res : imm;
-    }
-    [@@deriving show { with_path = false }]
-
-    and let_binding = Function of fun_let | Binding of anf_let
-    [@@deriving show { with_path = false }]
-
-    (* Easy constructors *)
-    let tname i t : db_name = { value = i; typ = t }
-    let iname i t : int typed = { value = i; typ = t }
-    let tlit l t : literal typed = { value = l; typ = t }
-    let immlit x = ImmLit x
-    let immval x = ImmVal x
-    let ilvval x = ILvValue x
-    let dec name expr = { name; expr }
-    let fun_dec is_rec name arg lets res = { is_rec; name; arg; lets; res }
-    let bind x = Binding x
-    let fun_bind x = Function x
-
-    let rec gen_db_name (lval : typ_lvalue) vm =
-      match (lval.value, lval.typ) with
-      | LvValue old_name, _ ->
-          let idname = gen_name () in
-          let name = tname (idname |> ilvval) lval.typ in
-          let vm = NameMap.add old_name idname vm in
-          (name, vm)
-      | LvTuple old_names, TyTuple typs ->
-          let helper (acc, vm) x =
-            let genned, vm = gen_db_name { value = snd x; typ = fst x } vm in
-            (acc @ [ genned.value ], vm)
-          in
-          let res, vm =
-            List.map value old_names
-            |> List.map2 (fun x y -> (x, y)) typs
-            |> List.fold_left helper ([], vm)
-          in
-          (tname (ILvTuple res) lval.typ, vm)
-      (* Very unsure of type, ask Matvey *)
-      | LvUnit, _ -> (tname ILvUnit (TyGround TUnit), vm)
-      | _, _ -> (tname ILvAny (TyGround TUnit), vm)
-
-    let rec process_lets lst vm acc =
-      match lst with
-      | h :: t ->
-          let lets, res, vm = anf_let h vm in
-          let iter_res = (lets, res) in
-          process_lets t vm (acc @ [ iter_res ])
-      | [] -> (acc, vm)
-
-    (* ANF of whole program *)
-    and anf_of_program (program : typ_program) =
-      let vm = NameMap.empty in
-      let res, _ = process_lets program vm [] in
-      res |> List.concat_map fst
-
-    (* ANF form of let *)
-    and anf_let (l : typ_let_binding) vm =
-      let lets = l.body.lets in
-      let expr = l.body.expr in
-      let results, vm = process_lets lets vm [] in
-      let _, bvm = gen_db_name l.l_v vm in
-      let self_dec, self_name, _ = anf_expr expr bvm in
-      let inner_decs = List.concat_map fst results in
-      (self_dec @ inner_decs, self_name, bvm)
-
-    (* let of fn *)
-    and anf_fun f is_rec vm =
-      let arg = f.lvalue in
-      let body = f.b in
-      let bvm = vm in
-      let arg_name, vm = gen_db_name arg vm in
-      let self_name = iname (gen_name ()) f.b.expr.typ in
-      let lets = body.lets in
-      let expr = body.expr in
-      let results, vm = process_lets lets vm [] in
-      let self_dec, imm_result, _ = anf_expr expr vm in
-      let inner_decs = List.concat_map fst results in
-      let self_val = self_name |> immval in
-      let all_decs = inner_decs @ self_dec in
-      (fun_dec is_rec self_name arg_name all_decs imm_result, self_val, bvm)
-
-    (* ANF expr and alet decs from expr *)
-    and anf_expr (e : typ_expr) vm =
-      let rec process_exprs lst vm acc =
-        match lst with
-        | h :: t ->
-            let lets, res, vm = anf_expr h vm in
-            let iter_res = (lets, res) in
-            process_exprs t vm (acc @ [ iter_res ])
-        | [] -> (acc, vm)
-      in
-      match e.value with
-      | TApply (left, right) ->
-          let left_lets, left_res, vm = anf_expr left vm in
-          let right_lets, right_res, vm = anf_expr right vm in
-          let name = iname (gen_name ()) e.typ in
-          (* APPLY MAY CHANGE LATER, FIX IF BROKEN *)
-          let dec = dec name @@ AApply (right_res, left_res) |> bind in
-          (left_lets @ right_lets @ [ dec ], name |> immval, vm)
-      | TLiteral literal -> ([], tlit literal e.typ |> immlit, vm)
-      | TValue name -> (
-          match NameMap.find_opt name vm with
-          | None ->
-              let idname = gen_name () in
-              let dn = iname idname e.typ in
-              let vm = NameMap.add name idname vm in
-              ([], dn |> immval, vm)
-          | Some i ->
-              let dn = iname i e.typ in
-              ([], dn |> immval, vm))
-      | TTuple exprs ->
-          let results, vm = process_exprs exprs vm [] in
-          let res = ATuple (List.map snd results) in
-          let name = iname (gen_name ()) e.typ in
-          let dec = dec name res |> bind in
-          let decs = List.concat_map fst results in
-          (decs @ [ dec ], name |> immval, vm)
-      | TFun fn ->
-          let dec, res, vm = anf_fun fn false vm in
-          ([ dec |> fun_bind ], res, vm)
-      | TIfElse ite ->
-          let c_decs, c_res, vm = anf_expr ite.cond vm in
-          let t_decs, t_res, vm = anf_expr ite.t_body vm in
-          let d_decs, f_res, vm = anf_expr ite.f_body vm in
-          let name = iname (gen_name ()) e.typ in
-          let res = AITE (c_res, t_res, f_res) in
-          let dec = dec name res |> bind in
-          (c_decs @ t_decs @ d_decs @ [ dec ], name |> immval, vm)
-
-    (* Cool print *)
-    let print_imm st = function
-      | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
-      | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
-
-    let print_anf_expr st = function
-      | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
-      | ATuple xs ->
-          Format.sprintf "(%s)"
-          @@ List.fold_left (fun xs x -> xs ^ "," ^ print_imm st x) "" xs
-      | AITE (i, t, e) ->
-          Format.sprintf "if %s then %s else %s" (print_imm st i) (print_imm st t)
-            (print_imm st e)
-
-    let rec print_anf_dec st intd = function
-      | Binding x ->
-          Format.sprintf "%slet (%d%s) = %s" intd x.name.value (st x.name.typ)
-            (print_anf_expr st x.expr)
-      | Function x ->
-          let name, name_type = (x.name.value, st x.name.typ) in
-          let arg, arg_type = (show_ilvalue x.arg.value, st x.arg.typ) in
+  let rec print_anf_expr st intd = function
+    | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
+    | ATuple xs ->
+        Format.sprintf "(%s)"
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_imm st x) "" xs
+    | AITE (i, t, e) ->
+        let print_body b =
           let lets =
             List.fold_left
-              (fun xs x -> xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") x)
-              "" x.lets
+              (fun xs x ->
+                xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x))
+              "" b.lets
           in
-          Format.sprintf "let_f (%d%s) (%s%s) = %s%s" name name_type arg arg_type
-            lets (print_imm st x.res)
+          let expr = Format.sprintf "%s%s" intd (print_imm st b.res) in
+          Format.sprintf "%s\n%s" lets expr
+        in
+        Format.sprintf "if\n%s\nthen\n%s\nelse\n%s" (print_body i)
+          (print_body t) (print_body e)
+    | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
+    | AImm i -> print_imm st i
 
-    let do_show_type t = ": " ^ show_ty t
-    let dont_show_type _ = ""
+  and print_anf_dec st intd = function
+    | AnfVal x ->
+        Format.sprintf "%slet (%d%s) = %s" intd x.name.value (st x.name.typ)
+          (print_anf_expr st intd x.e)
+    | AnfFun x ->
+        let name, name_type = (x.name.value, st x.name.typ) in
+        let arg, arg_type = (x.arg.value, st x.arg.typ) in
+        let lets =
+          List.fold_left
+            (fun xs x -> xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x))
+            "" x.body.lets
+        in
+        Format.sprintf "let_f (%d%s) (%d%s) = %s%s" name name_type arg arg_type
+          lets (print_imm st x.body.res)
 
-    let show_anf_program =
-      List.fold_left (fun xs x -> xs ^ print_anf_dec do_show_type "" x) ""
-  end
-*)
+  let do_show_type t = ": " ^ show_ty t
+  let dont_show_type _ = ""
+
+  let show_anf_program =
+    List.fold_left
+      (fun xs x -> xs ^ "\n" ^ print_anf_dec dont_show_type "" x)
+      ""
+end
+
+module AnfConvert = struct
+  open AnfTypeAst
+  open Type_ast.TypeAst
+  open Closureconvert.ClosureAst
+  open Counter.Counter
+
+  (* constructors *)
+  let app l r = AApply (l, r)
+  let tup l = ATuple l
+  let aite i t e = AITE (i, t, e)
+  let imm i = AImm i
+  let imml l = ImmLit l
+  let immv v = ImmVal v
+  let tname t name : tname = { typ = t; value = name }
+  let tliteral t literal : tliteral = { typ = t; value = literal }
+  let binding name expr : anf_val_binding = { name; e = expr }
+  let body lets res : anf_body = { lets; res }
+  let tlvalue typ value : tlvalue = { value; typ }
+
+  type aer = anf_val_binding list * imm
+
+  let rec anf_of_expr (e : cf_typ_expr) : aer =
+    match e.value with
+    | CFApply (left, right) ->
+        let left_bindings, left_imm = anf_of_expr left in
+        let right_bindings, right_imm = anf_of_expr right in
+        let self_tname = cnt_next () |> tname e.typ in
+        let self_binding = app left_imm right_imm |> binding self_tname in
+        (left_bindings @ right_bindings @ [ self_binding ], self_tname |> immv)
+    | CFIfElse ite ->
+        let if_bindings, if_imm = anf_of_expr ite.cond in
+        let then_bindings, then_imm = anf_of_expr ite.t_body in
+        let else_bindings, else_imm = anf_of_expr ite.f_body in
+        let if_body = body if_bindings if_imm in
+        let then_body = body then_bindings then_imm in
+        let else_body = body else_bindings else_imm in
+        let self_tname = cnt_next () |> tname e.typ in
+        let self_binding =
+          aite if_body then_body else_body |> binding self_tname
+        in
+        let all_bindings =
+          if_bindings @ then_bindings @ else_bindings @ [ self_binding ]
+        in
+        (all_bindings, self_tname |> immv)
+    | CFLiteral l -> ([], l |> tliteral e.typ |> imml)
+    | CFValue v -> ([], v |> tname e.typ |> immv)
+    | CFTuple elements ->
+        let bindings, tuple_imms =
+          List.fold_left
+            (fun (bindings, results) x ->
+              let new_binding, new_result = anf_of_expr x in
+              (bindings @ new_binding, results @ [ new_result ]))
+            ([], []) elements
+        in
+        let self_tname = cnt_next () |> tname e.typ in
+        let self_binding = tup tuple_imms |> binding self_tname in
+        (bindings @ [ self_binding ], self_tname |> immv)
+
+  let rec lv_binds (lv : tlvalue) (er : imm) : anf_val_binding list =
+    match (lv.value, lv.typ) with
+    | DLvValue name, _ -> [ binding (tname lv.typ name) (imm er) ]
+    | DLvTuple lvalues, TyTuple typs ->
+        let zipped =
+          List.map2 (fun x y -> (x, y)) lvalues typs
+        in
+        let decs =
+          List.mapi
+            (fun index (elem, etyp) ->
+              let t_name = cnt_next () |> tname etyp in
+              let access = ATupleAccess (er, index) |> binding t_name in
+              let telem = tlvalue etyp elem in
+              access :: lv_binds telem (t_name |> immv))
+            zipped
+        in
+        List.concat decs
+    | _, _ -> []
+
+  let rec anf_of_let_binding (l : cf_typ_let_binding) :
+      anf_val_binding list =
+    let bindings =
+      List.fold_left
+        (fun bindings x ->
+          let new_binding = anf_of_let_binding x in
+          bindings @ new_binding)
+        [] l.cf_body.cf_lets
+    in
+    let expr_bindings, expr_res = anf_of_expr l.cf_body.cf_expr in
+    bindings @ expr_bindings @ lv_binds l.l_v expr_res
+
+  let rec anf_of_fun_binding (l : cf_fun_let_binding) : anf_fun_binding
+      =
+    let bindings =
+      List.fold_left
+        (fun bindings x ->
+          let new_binding = anf_of_let_binding x in
+          bindings @ new_binding)
+        [] l.b.cf_lets
+    in
+    let expr_bindings, res = anf_of_expr l.b.cf_expr in
+    let arg_name = cnt_next () |> tname l.args.typ in
+    let arg_imm = arg_name |> immv in
+    let arg_decs = lv_binds l.args arg_imm in
+    let lets = arg_decs @ bindings @ expr_bindings in
+    let body = { lets; res } in
+    { name = l.name; arg = arg_name; body }
+
+  let anf_of_program (p : cf_typ_program) : anf_program =
+    List.fold_left
+      (fun xs x ->
+        match x with
+        | FunBinding fb -> xs @ [ AnfFun (anf_of_fun_binding fb) ]
+        | ValBinding vb ->
+            xs @ (anf_of_let_binding vb |> List.map (fun x -> AnfVal x)))
+      [] p
+end

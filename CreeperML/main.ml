@@ -8,11 +8,17 @@ open Result
 open CreeperML.Infer.Infer
 open CreeperML.Parser_interface.ParserInterface
 open CreeperML.Type_ast.TypeAst
+open CreeperML.Type_ast.InferTypeUtils
 open CreeperML.Closureconvert.ClosureConvert
-open CreeperML.Closureconvert.ClosureAst
+open CreeperML.Anf_type_ast.AnfTypeAst
+open CreeperML.Anf_type_ast.AnfConvert
+open CreeperML.Counter.Counter
+open CreeperML.Db.DbTypeAst
+
+module NameMap = Map.Make(String)
+
 
 let lr =
-  let open CreeperML.Type_ast.InferTypeUtils in
   let int_const = t_ground t_int |> with_lvls 0 0 in
   let bool_const = t_ground t_bool |> with_lvls 0 0 in
   let arr = t_arrow int_const bool_const |> with_lvls 0 0 in
@@ -20,14 +26,12 @@ let lr =
   ("<=", lr)
 
 let mi =
-  let open CreeperML.Type_ast.InferTypeUtils in
   let int_const = t_ground t_int |> with_lvls 0 0 in
   let arr = t_arrow int_const int_const |> with_lvls 0 0 in
   let mi = t_arrow int_const arr |> with_lvls 0 0 in
   ("-", mi)
 
 let ml =
-  let open CreeperML.Type_ast.InferTypeUtils in
   let int_const = t_ground t_int |> with_lvls 0 0 in
   let arr = t_arrow int_const int_const |> with_lvls 0 0 in
   let ml = t_arrow int_const arr |> with_lvls 0 0 in
@@ -42,43 +46,55 @@ let () =
        List.iter (fun l ->
            CreeperML.Type_ast.TypeAst.show_typ_let_binding l |> Printf.printf "%s")
      in *)
-  let input_program =
+  let _input_program =
     (* {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|} *)
-    {|let f x = 
-        let g y =
-          let z = x - y in
-          z - 3
+    {|let ligma = 
+        let ikis = 24 in
+        let makis = 48 - 39 in
+        let _ = 13 in
+        let balls = 
+          let makis = 99 in
+          makis <= 4
         in
-        g
-
-      let a = f 10
-      let b = a 11
+        if balls then 24 - ikis * makis else 34 * makis
     |}
+      in
+  let input_program = {|
+      let a =
+        let a = 
+          let a = 3 
+        in
+        a - 1 
+      in
+      a - 2
+
+      let b = a * 3
+  |}
   in
+  let nm = NameMap.empty in
+  let nm = NameMap.add "<=" (cnt_next ()) nm in
+  let nm = NameMap.add "-" (cnt_next ()) nm in
+  let nm = NameMap.add "*" (cnt_next ()) nm in
   let globals =
     [
       typed
         (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TBool))
-        "<=";
+        @@ NameMap.find "<=" nm;
       typed
         (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
-        "-";
+        @@ NameMap.find "<=" nm;
       typed
         (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
-        "*";
+        @@ NameMap.find "<=" nm;
     ]
   in
+  let apply_db_renaming p = Ok (db_program_of_typed_program nm p) in
   let apply_closure_convert p = Ok (cf_program p globals) in
+  let apply_anf_convert p = Ok (anf_of_program p) in
   let apply_infer p = top_infer [ lr; mi; ml ] p in
   let apply_parser = from_string in
-  (* let apply_anf x = Ok (anf_of_program x) in
-     let print_ast x = show_anf_program x |> print_endline in*)
-  apply_parser input_program >>= apply_infer >>= apply_closure_convert
+  apply_parser input_program >>= apply_infer >>= apply_db_renaming >>= apply_closure_convert
+  >>= apply_anf_convert
   |> function
-  | Ok x -> show_cf_program x |> print_endline
+  | Ok x -> show_anf_program x |> print_endline
   | Error x -> print_endline x
-(*| Ok x -> show_program x
-  | _ -> ()
-  >>= apply_anf |> function
-  | Ok x -> print_ast x
-  | Error x -> print_endline x*)

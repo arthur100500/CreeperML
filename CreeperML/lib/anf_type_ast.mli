@@ -1,46 +1,36 @@
-(*module AnfTypeAst : sig
-    open Type_ast.TypeAst
-    open Parser_ast.ParserAst
-    open Position.Position
+module AnfTypeAst : sig
+  open Type_ast.TypeAst
+  open Parser_ast.ParserAst
+  open Position.Position
+  open Closureconvert.ClosureAst
+  open Db.DbTypeAst
 
-    (* Typed AST in ANF and De breujn indices *)
-    type ilvalue = ILvUnit | ILvValue of int | ILvTuple of ilvalue list | ILvAny
-    type db_name = ilvalue typed [@@deriving show { with_path = false }]
-    type imm = ImmVal of int typed | ImmLit of literal typed
+  type tlvalue = db_lvalue
+  type tliteral = (literal, ty) typed
+  type tname = (int, ty) typed
+  type imm = ImmVal of tname | ImmLit of tliteral
 
-    (* Exprs with simple apply, tuples, vals and literals, ite constructions *)
-    type anf_expr =
-      | AApply of imm * imm
-      | ATuple of imm list
-      | AITE of imm * imm * imm
-    [@@deriving show { with_path = false }]
+  type anf_expr =
+    | AApply of imm * imm
+    | ATuple of imm list
+    | AITE of
+        anf_body * anf_body * anf_body (* It's not imm for lazy evaluation *)
+    | AImm of imm
+    | ATupleAccess of imm * int (* Get rid of lvalues *)
 
-    (* Let wit arguments and expr (name, args, res)*)
-    type anf_let = { name : int typed; expr : anf_expr }
-    [@@deriving show { with_path = false }]
+  and anf_body = { lets : anf_val_binding list; res : imm }
+  and anf_val_binding = { name : tname; e : anf_expr }
 
-    type fun_let = {
-      is_rec : bool;
-      name : int typed;
-      arg : db_name;
-      lets : let_binding list;
-      res : imm;
-    }
-    [@@deriving show { with_path = false }]
+  type anf_fun_binding = { name : tname; arg : tname; body : anf_body }
+  type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
+  type anf_program = anf_binding list
 
-    and let_binding = Function of fun_let | Binding of anf_let
-    [@@deriving show { with_path = false }]
+  val show_anf_program : anf_binding list -> name
+end
 
-    val anf_of_program : typ_program -> let_binding list
-    val show_anf_program : let_binding list -> string
+module AnfConvert : sig
+  open AnfTypeAst
+  open Closureconvert.ClosureAst
 
-    (* shows *)
-    val show_ilvalue : ilvalue -> string
-    val show_db_name : db_name -> string
-    val show_imm : imm -> string
-    val show_anf_expr : anf_expr -> string
-    val show_anf_let : anf_let -> string
-    val show_fun_let : fun_let -> string
-    val show_let_binding : let_binding -> string
-  end
-*)
+  val anf_of_program : cf_typ_program -> anf_program
+end

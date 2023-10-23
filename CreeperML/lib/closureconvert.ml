@@ -1,10 +1,11 @@
 module ClosureAst = struct
-  open Type_ast.TypeAst
+  open Db.DbTypeAst
   open Parser_ast.ParserAst
+  open Type_ast.TypeAst
 
   type cf_typ_let_binding = {
     rec_f : rec_flag;
-    l_v : ty typ_lvalue;
+    l_v : db_lvalue;
     cf_body : cf_typ_let_body;
   }
 
@@ -13,18 +14,18 @@ module ClosureAst = struct
     cf_expr : cf_typ_expr;
   }
 
-  and typ_fun_let_binding = {
+  and cf_fun_let_binding = {
     is_rec : rec_flag;
-    name : (name, ty) typed;
-    args : ty typ_lvalue list;
+    name : (int, ty) typed;
+    args : db_lvalue;
     b : cf_typ_let_body;
-    env_vars : (name, ty) typed list;
+    env_vars : (int, ty) typed list;
   }
 
   and cf_expr =
     | CFApply of cf_typ_expr * cf_typ_expr
     | CFLiteral of literal
-    | CFValue of name
+    | CFValue of int
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
 
@@ -37,17 +38,17 @@ module ClosureAst = struct
   and cf_typ_expr = (cf_expr, ty) typed [@@deriving show { with_path = false }]
 
   type cf_binding =
-    | FunBinding of typ_fun_let_binding
+    | FunBinding of cf_fun_let_binding
     | ValBinding of cf_typ_let_binding
   [@@deriving show { with_path = false }]
 
   type cf_typ_program = cf_binding list [@@deriving show { with_path = false }]
 
   (* Cool print *)
-  let print_env_vars st (c : (name, ty) typed list) =
+  let print_env_vars st (c : (int, ty) typed list) =
     List.fold_left
-      (fun xs (x : (name, ty) typed) ->
-        Format.sprintf "[%s %s] %s" x.value (st x.typ) xs)
+      (fun xs (x : (int, ty) typed) ->
+        Format.sprintf "[%d %s] %s" x.value (st x.typ) xs)
       "" c
     |> Format.sprintf "[%s]"
 
@@ -64,17 +65,17 @@ module ClosureAst = struct
         let e = ite.f_body in
         Format.sprintf "if %s then %s else %s" (print_cf_expr st i)
           (print_cf_expr st t) (print_cf_expr st e)
-    | CFValue v -> v
+    | CFValue v -> Format.sprintf "%d" v
     | CFLiteral l -> show_literal l
 
   let rec print_lval = function
-    | LvValue v -> v
-    | LvAny -> "any"
-    | LvUnit -> "()"
-    | LvTuple xs ->
+    | DLvValue v -> Format.sprintf "%d" v
+    | DLvAny -> "any"
+    | DLvUnit -> "()"
+    | DLvTuple xs ->
         Format.sprintf "(%s)"
         @@ List.fold_left
-             (fun xs x -> xs ^ "," ^ print_lval (Position.Position.value x))
+             (fun xs x -> xs ^ "," ^ print_lval x)
              "" xs
 
   let rec print_cf_dec st intd = function
@@ -99,12 +100,12 @@ module ClosureAst = struct
         in
         let args =
           List.fold_left
-            (fun xs (x : ty typ_lvalue) ->
+            (fun xs (x : db_lvalue) ->
               Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
-            "" x.args
+            "" [ x.args ]
         in
         let env_vals = print_env_vars st x.env_vars in
-        Format.sprintf "%sletf %s %s%s %s= %s\n%s  %s\n\n" intd lval args
+        Format.sprintf "%sletf %d %s%s %s= %s\n%s  %s\n\n" intd lval args
           (st x.name.typ) env_vals lets intd
           (print_cf_expr st x.b.cf_expr)
 
@@ -120,68 +121,64 @@ module ClosureConvert = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Position.Position
+  open Db.DbTypeAst
+  open Counter.Counter
 
   module TypedName = struct
-    type t = (name, ty) typed
+    type t = (int, ty) typed
 
     let compare (n1 : t) (n2 : t) = compare n1.value n2.value
   end
 
   module NameSet = Set.Make (TypedName)
 
-  let name_count = ref 0
-
-  let gen_fun_name () =
-    name_count := !name_count + 1;
-    Format.sprintf "f.%d" !name_count
-
   let typed t e : ('a, ty) typed = { value = e; typ = t }
 
   (* Move declarations of let inside of fun *)
-  let rec move_lets (l : ty typ_let_binding) : ty typ_let_binding =
+  let move_lets (l : db_let_binding) : db_let_binding =
     match l.body.expr.value with
-    | TFun f ->
+    | DFun f ->
         let inners = l.body.lets @ f.b.lets in
         let new_fun = { f with b = { f.b with lets = inners } } in
-        let expr = TFun new_fun |> typed l.body.expr.typ in
+        let expr = DFun new_fun |> typed l.body.expr.typ in
         { l with body = { lets = []; expr } }
     | _ -> l
 
-  let rec typ_names_of_lvalue (lval : (lvalue, ty) typed) =
+  let rec typ_names_of_lvalue (lval : (ilvalue, ty) typed) =
     match (lval.value, lval.typ) with
-    | LvTuple vs, TyTuple typs ->
+    | DLvTuple vs, TyTuple typs ->
         let e = NameSet.empty in
         let valtyps = List.map2 (fun x y -> (x, y)) vs typs in
         List.fold_left
           (fun xs x ->
             NameSet.union xs
-            @@ typ_names_of_lvalue (typed (snd x) @@ value (fst x)))
+            @@ typ_names_of_lvalue (typed (snd x) @@ (fst x)))
           e valtyps
-    | LvValue v, ty -> typed ty v |> NameSet.singleton
-    | LvUnit, ty -> typed ty "()" |> NameSet.singleton
-    | LvAny, ty -> typed ty "_" |> NameSet.singleton
+    | DLvValue v, ty -> typed ty v |> NameSet.singleton
+    | DLvUnit, ty -> typed ty (-1) |> NameSet.singleton
+    | DLvAny, ty -> typed ty (-1) |> NameSet.singleton
     | _ -> failwith "Incorrectly typed ast"
 
-  let rec collect_unbound_variables (f : ty tfun_body) global_bindings =
-    let rec collect_variables_in_expr (e : ty typ_expr) =
+  let rec collect_unbound_variables (f : db_fun_body) global_bindings =
+    let rec collect_variables_in_expr (e : db_expr) =
       match e.value with
-      | TApply (left, right) ->
+      | DApply (left, right) ->
           let left = collect_variables_in_expr left in
           let right = collect_variables_in_expr right in
           NameSet.union left right
-      | TLiteral _ -> NameSet.empty
-      | TValue name -> NameSet.singleton @@ typed e.typ name
-      | TTuple exprs ->
+      | DLiteral _ -> NameSet.empty
+      | DValue name -> NameSet.singleton @@ typed e.typ name
+      | DTuple exprs ->
           List.fold_left NameSet.union NameSet.empty
             (List.map collect_variables_in_expr exprs)
-      | TIfElse ite ->
+      | DIfElse ite ->
           let i = collect_variables_in_expr ite.cond in
           let t = collect_variables_in_expr ite.t_body in
           let e = collect_variables_in_expr ite.f_body in
           NameSet.union i t |> NameSet.union e
-      | TFun f -> collect_unbound_variables f global_bindings
+      | DFun f -> collect_unbound_variables f global_bindings
     in
-    let rec collect_variables_in_let (l : ty typ_let_binding) known =
+    let rec collect_variables_in_let (l : db_let_binding) known =
       let e = NameSet.empty in
       let u = NameSet.union in
       let d = NameSet.diff in
@@ -204,7 +201,7 @@ module ClosureConvert = struct
           (known, u iunknown expr_unknowns)
     in
 
-    let collect_variables_in_body (b : ty typ_let_body) known =
+    let collect_variables_in_body (b : db_let_body) known =
       let e = NameSet.empty in
       let u = NameSet.union in
       let known, unknown =
@@ -222,23 +219,23 @@ module ClosureConvert = struct
     let known, unknown = collect_variables_in_body f.b known in
     NameSet.diff unknown known
 
-  let rec closure_free_expr globals r (e : ty typ_expr) =
+  let rec closure_free_expr globals r (e : db_expr) =
     match e.value with
-    | TApply (left, right) ->
+    | DApply (left, right) ->
         let left_decs, left = closure_free_expr globals r left in
         let right_decs, right = closure_free_expr globals r right in
         let result = CFApply (left, right) |> typed e.typ in
         (left_decs @ right_decs, result)
-    | TLiteral literal -> ([], CFLiteral literal |> typed e.typ)
-    | TValue name -> ([], CFValue name |> typed e.typ)
-    | TTuple exprs ->
+    | DLiteral literal -> ([], CFLiteral literal |> typed e.typ)
+    | DValue name -> ([], CFValue name |> typed e.typ)
+    | DTuple exprs ->
         let inner xs x =
           let x_decs, x_res = closure_free_expr globals r x in
           (fst xs @ x_decs, snd xs @ [ x_res ])
         in
         let cf_exprs = List.fold_left inner ([], []) exprs in
         (fst cf_exprs, CFTuple (snd cf_exprs) |> typed e.typ)
-    | TIfElse ite ->
+    | DIfElse ite ->
         let i_decs, i_expr = closure_free_expr globals r ite.cond in
         let t_decs, t_expr = closure_free_expr globals r ite.t_body in
         let e_decs, e_expr = closure_free_expr globals r ite.f_body in
@@ -247,7 +244,7 @@ module ClosureConvert = struct
         in
         let res_typed = res |> typed e.typ in
         (i_decs @ t_decs @ e_decs, res_typed)
-    | TFun f ->
+    | DFun f ->
         let unknown_vars = collect_unbound_variables f globals in
         let inner = List.map (cf_let globals r) f.b.lets in
         let expr_closures, cf_expr = closure_free_expr globals r f.b.expr in
@@ -255,12 +252,12 @@ module ClosureConvert = struct
         let inner_closures = List.map fst inner in
         let cf_body = { cf_lets = inner_cf_lets; cf_expr } in
         let env = NameSet.to_seq unknown_vars |> List.of_seq in
-        let genned = gen_fun_name () in
+        let genned = cnt_next () in
         let fun_let =
           {
             is_rec = r;
             name = typed e.typ genned;
-            args = [ f.lvalue ];
+            args = f.lvalue;
             b = cf_body;
             env_vars = env;
           }
@@ -268,7 +265,7 @@ module ClosureConvert = struct
         let f = CFValue genned |> typed e.typ in
         (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
 
-  and cf_let (globals : NameSet.t) is_rec (l : ty typ_let_binding) =
+  and cf_let (globals : NameSet.t) is_rec (l : db_let_binding) =
     let inner = List.map (cf_let globals is_rec) l.body.lets in
     let closures, cf_expr = closure_free_expr globals is_rec l.body.expr in
     let inner_cf_lets = List.map snd inner in
@@ -279,9 +276,9 @@ module ClosureConvert = struct
     in
     (List.concat inner_closures @ closures, cf_let_binding)
 
-  and cf_program (prog : ty typ_program) (globals : (name, ty) typed list) :
+  and cf_program (prog : db_program) (globals : (int, ty) typed list) :
       cf_typ_program =
-    let rec inner g (p : ty typ_program) acc =
+    let rec inner g (p : db_program) acc =
       match p with
       | h :: t ->
           let closures, binding = cf_let g h.rec_f h in
