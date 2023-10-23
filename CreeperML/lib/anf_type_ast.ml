@@ -1,8 +1,6 @@
 module AnfTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Position.Position
-  open Closureconvert.ClosureAst
   open Db.DbTypeAst
 
   type tlvalue = db_lvalue
@@ -164,7 +162,7 @@ module AnfConvert = struct
     let expr_bindings, expr_res = anf_of_expr l.cf_body.cf_expr in
     bindings @ expr_bindings @ lv_binds l.l_v expr_res
 
-  let rec anf_of_fun_binding (l : cf_fun_let_binding) : anf_fun_binding
+  let anf_of_fun_binding (l : cf_fun_let_binding) : anf_fun_binding
       =
     let bindings =
       List.fold_left

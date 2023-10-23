@@ -120,7 +120,6 @@ module ClosureConvert = struct
   open ClosureAst
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Position.Position
   open Db.DbTypeAst
   open Counter.Counter
 
