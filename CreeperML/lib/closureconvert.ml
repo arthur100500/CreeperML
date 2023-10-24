@@ -74,9 +74,7 @@ module ClosureAst = struct
     | DLvUnit -> "()"
     | DLvTuple xs ->
         Format.sprintf "(%s)"
-        @@ List.fold_left
-             (fun xs x -> xs ^ "," ^ print_lval x)
-             "" xs
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_lval x) "" xs
 
   let rec print_cf_dec st intd = function
     | ValBinding x ->
@@ -133,16 +131,6 @@ module ClosureConvert = struct
 
   let typed t e : ('a, ty) typed = { value = e; typ = t }
 
-  (* Move declarations of let inside of fun *)
-  let move_lets (l : db_let_binding) : db_let_binding =
-    match l.body.expr.value with
-    | DFun f ->
-        let inners = l.body.lets @ f.b.lets in
-        let new_fun = { f with b = { f.b with lets = inners } } in
-        let expr = DFun new_fun |> typed l.body.expr.typ in
-        { l with body = { lets = []; expr } }
-    | _ -> l
-
   let rec typ_names_of_lvalue (lval : (ilvalue, ty) typed) =
     match (lval.value, lval.typ) with
     | DLvTuple vs, TyTuple typs ->
@@ -150,8 +138,7 @@ module ClosureConvert = struct
         let valtyps = List.map2 (fun x y -> (x, y)) vs typs in
         List.fold_left
           (fun xs x ->
-            NameSet.union xs
-            @@ typ_names_of_lvalue (typed (snd x) @@ (fst x)))
+            NameSet.union xs @@ typ_names_of_lvalue (typed (snd x) @@ fst x))
           e valtyps
     | DLvValue v, ty -> typed ty v |> NameSet.singleton
     | DLvUnit, ty -> typed ty (-1) |> NameSet.singleton
@@ -289,6 +276,5 @@ module ClosureConvert = struct
       | [] -> acc
     in
     let set = NameSet.of_list globals in
-    let prog = List.map move_lets prog in
     inner set prog []
 end

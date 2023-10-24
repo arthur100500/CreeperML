@@ -8,7 +8,7 @@
             "name": "OCaml earlybird (experimental)",
             "type": "ocaml.earlybird",
             "request": "launch",
-            "program": "${command:AskProgram}",
+            "program": "/media/arhur/Windows/Users/arthu/Documents/GitHub/CreeperML/CreeperML/src/_build/default/main.bc",
             "stopOnEntry": true
         }
     ]

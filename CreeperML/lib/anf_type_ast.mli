@@ -13,19 +13,24 @@ module AnfTypeAst : sig
   type anf_expr =
     | AApply of imm * imm
     | ATuple of imm list
-    | AITE of
-        anf_body * anf_body * anf_body (* It's not imm for lazy evaluation *)
+    | Aite of anf_body * anf_body * anf_body
     | AImm of imm
-    | ATupleAccess of imm * int (* Get rid of lvalues *)
+    | ATupleAccess of imm * int
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
 
-  type anf_fun_binding = { name : tname; arg : tname; body : anf_body }
+  type anf_fun_binding = {
+    name : tname;
+    arg : tname;
+    body : anf_body;
+    env_vars : tname list;
+  }
+
   type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
   type anf_program = anf_binding list
 
-  val show_anf_program : anf_binding list -> name
+  val show_anf_program : bool -> anf_binding list -> name
 end
 
 module AnfConvert : sig
