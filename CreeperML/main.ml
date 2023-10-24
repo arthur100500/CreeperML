@@ -46,30 +46,9 @@ let () =
        List.iter (fun l ->
            CreeperML.Type_ast.TypeAst.show_typ_let_binding l |> Printf.printf "%s")
      in *)
-  let _input_program =
+  let input_program =
     (* {|let rec fac n = if lor n 0 then 1 else n * fac (n - 1)|} *)
-    {|let ligma = 
-        let ikis = 24 in
-        let makis = 48 - 39 in
-        let _ = 13 in
-        let balls = 
-          let makis = 99 in
-          makis <= 4
-        in
-        if balls then 24 - ikis * makis else 34 * makis
-    |}
-      in
-  let input_program = {|
-      let a =
-        let a = 
-          let a = 3 
-        in
-        a - 1 
-      in
-      a - 2
-
-      let b = a * 3
-  |}
+    {|let rec fac n = if n <= 0 then 1 else n * fac (n - 1)|}
   in
   let nm = NameMap.empty in
   let nm = NameMap.add "<=" (cnt_next ()) nm in

@@ -41,11 +41,11 @@ module AnfTypeAst = struct
                 xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x))
               "" b.lets
           in
-          let expr = Format.sprintf "%s%s" intd (print_imm st b.res) in
+          let expr = Format.sprintf "  %s%s" intd (print_imm st b.res) in
           Format.sprintf "%s\n%s" lets expr
         in
-        Format.sprintf "if\n%s\nthen\n%s\nelse\n%s" (print_body i)
-          (print_body t) (print_body e)
+        Format.sprintf "if%s\n%sthen%s\n%selse%s" (print_body i)
+      intd (print_body t) intd (print_body e)
     | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
     | AImm i -> print_imm st i
 
