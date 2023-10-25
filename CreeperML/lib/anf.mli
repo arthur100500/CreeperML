@@ -1,8 +1,6 @@
 module AnfTypeAst : sig
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Position.Position
-  open Closure.ClosureAst
   open Db.DbTypeAst
 
   type tlvalue = db_lvalue
@@ -30,8 +28,6 @@ module AnfTypeAst : sig
 
   type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
   type anf_program = anf_binding list
-
-  val show_anf_program : bool -> anf_binding list -> name
 end
 
 module AnfConvert : sig

@@ -1,0 +1,145 @@
+module PrettyPrinter = struct
+  open Closure.ClosureAst
+  open Anf.AnfTypeAst
+  open Type_ast.TypeAst
+  open Parser_ast.ParserAst
+  open Db.DbTypeAst
+
+  (********************************************************
+                     Pretty print CF AST
+  ********************************************************)
+  let show_literal l =
+    match l with
+    | LInt i -> Format.sprintf "%d" i
+    | LFloat f -> Format.sprintf "%f" f
+    | LString s -> Format.sprintf "\"%s\""s
+    | LBool b -> if b then "true" else "false"
+    | LUnit -> "()"
+
+  let rec join sep lst =
+    match lst with
+    | h :: [] -> h
+    | h :: t -> Format.sprintf "%s%s%s" h sep (join sep t)
+    | [] -> ""
+
+  let print_env_vars st (c : (int, ty) typed list) =
+    let inner x = Format.sprintf "%d%s" x.value (st x.typ) in
+    join ", " @@ List.map inner c |> Format.sprintf "[%s]"
+
+  let rec print_cf_expr st (e : cf_typ_expr) =
+    match e.value with
+    | CFApply (x, y) ->
+        Format.sprintf "(%s %s)" (print_cf_expr st x) (print_cf_expr st y)
+    | CFTuple xs ->
+        Format.sprintf "(%s)"
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_cf_expr st x) "" xs
+    | CFIfElse ite ->
+        let i = ite.cond in
+        let t = ite.t_body in
+        let e = ite.f_body in
+        Format.sprintf "if %s then %s else %s" (print_cf_expr st i)
+          (print_cf_expr st t) (print_cf_expr st e)
+    | CFValue v -> Format.sprintf "v%d" v
+    | CFLiteral l -> show_literal l
+    | CFClosure (i, env) ->
+        let env =
+          join ", " @@ List.map (fun x -> Format.sprintf "%d" x.value) env
+        in
+        Format.sprintf "clsr[%d][%s]" i env
+
+  let rec print_lval = function
+    | DLvValue v -> Format.sprintf "%d" v
+    | DLvAny -> "any"
+    | DLvUnit -> "()"
+    | DLvTuple xs ->
+        Format.sprintf "(%s)"
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_lval x) "" xs
+
+  let rec print_cf_dec st intd = function
+    | ValBinding x ->
+        let lval = print_lval x.l_v.value in
+        let lets =
+          List.fold_left
+            (fun xs x -> xs ^ "\n" ^ print_cf_dec st (intd ^ "  ") x)
+            intd
+            (List.map (fun x -> ValBinding x) x.cf_body.cf_lets)
+        in
+        Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval (st x.l_v.typ) lets
+          intd
+          (print_cf_expr st x.cf_body.cf_expr)
+    | FunBinding x ->
+        let lval = x.name.value in
+        let lets =
+          List.fold_left
+            (fun xs x -> xs ^ "\n" ^ print_cf_dec st (intd ^ "  ") x)
+            intd
+            (List.map (fun x -> ValBinding x) x.b.cf_lets)
+        in
+        let args =
+          List.fold_left
+            (fun xs (x : db_lvalue) ->
+              Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
+            "" [ x.args ]
+        in
+        let env_vals = print_env_vars st x.env_vars in
+        Format.sprintf "%sletc %d%s%s %s = %s\n%s  %s" intd lval args
+          (st x.name.typ) env_vals lets intd
+          (print_cf_expr st x.b.cf_expr)
+
+  let pp_cf_program show_type =
+    let do_show_type t = ": " ^ show_ty t in
+    let dont_show_type _ = "" in
+    let st = if show_type then do_show_type else dont_show_type in
+    List.fold_left (fun xs x -> (xs ^ print_cf_dec st "" x) ^ "\n\n") ""
+
+  (********************************************************
+                     Pretty print ANF AST
+  ********************************************************)
+  let print_imm st = function
+    | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
+    | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
+
+  let rec print_body st intd (b : anf_body) =
+    let inner xs x = xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x) in
+    let lets = List.fold_left inner "" b.lets in
+    let expr = Format.sprintf "  %s%s" intd (print_imm st b.res) in
+    Format.sprintf "%s\n%s" lets expr
+
+  and print_anf_expr st intd = function
+    | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
+    | ATuple xs ->
+        Format.sprintf "(%s)"
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_imm st x) "" xs
+    | Aite (i, t, e) ->
+        let i_b = print_body st intd i in
+        let t_b = print_body st intd t in
+        let f_b = print_body st intd e in
+        Format.sprintf "if%s\n%sthen%s\n%selse%s" i_b intd t_b intd f_b
+    | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
+    | AImm i -> print_imm st i
+    | AClosure (i, env) ->
+        let env = join ", " @@ List.map (print_imm st) env in
+        Format.sprintf "clsr[%s][%s]" (print_imm st i) env
+
+  and print_anf_dec st intd = function
+    | AnfVal x ->
+        Format.sprintf "%slet (%d%s) = %s" intd x.name.value (st x.name.typ)
+          (print_anf_expr st intd x.e)
+    | AnfFun x ->
+        let print_env_var x = x.value |> Format.sprintf "%d" in
+        let intd = intd ^ "  " in
+        let inner xs x = xs ^ "\n" ^ print_anf_dec st intd (AnfVal x) in
+        let name, name_type = (x.name.value, st x.name.typ) in
+        let arg, arg_type = (x.arg.value, st x.arg.typ) in
+        let lets = List.fold_left inner "" x.body.lets in
+        let env_vars = join ", " @@ List.map print_env_var x.env_vars in
+        Format.sprintf "let (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
+          arg_type env_vars lets intd (print_imm st x.body.res)
+
+  let pp_anf_program print_type =
+    let do_show_type t = ": " ^ show_ty t in
+    let dont_show_type _ = "" in
+    let st = if print_type then do_show_type else dont_show_type in
+    let inner xs x = Format.sprintf "%s\n%s\n" xs (print_anf_dec st "" x) in
+    List.fold_left inner ""
+end

@@ -58,9 +58,6 @@ module DbTypeAst = struct
         List.map (fun x -> value x |> db_lv nm) vs |> fun x -> DLvTuple x
 
   let rec db_expr (nm : nm) (e : ty typ_expr) : db_expr =
-    let _dbg_nm_rendered =
-      NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
-    in
     match e.value with
     | TApply (l, r) ->
         let lr = db_expr nm l in
@@ -87,9 +84,6 @@ module DbTypeAst = struct
             (fun nm n -> NameMap.add n (cnt_next ()) nm)
             nm all_names
         in
-        let _dbg_nm_rendered =
-          NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
-        in
         let lets, nm_inners =
           List.fold_left
             (fun (xs, nm) x ->
@@ -113,10 +107,6 @@ module DbTypeAst = struct
             nm all_names
       | NoRec -> nm
     in
-    let _dbg_nm_rendered =
-      NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
-    in
-    let _dbg_l_rendered = show_typ_let_binding (fun _ _ -> ()) l in
     let lets, nm_inners =
       List.fold_left
         (fun (xs, nm) x ->

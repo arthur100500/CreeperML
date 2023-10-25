@@ -28,61 +28,6 @@ module AnfTypeAst = struct
 
   type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
   type anf_program = anf_binding list
-
-  (* Cool print *)
-  let rec join sep lst =
-    match lst with
-    | h :: [] -> h
-    | h :: t -> Format.sprintf "%s%s%s" h sep (join sep t)
-    | [] -> ""
-
-  let print_imm st = function
-    | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
-    | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
-
-  let rec print_body st intd b =
-    let inner xs x = xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x) in
-    let lets = List.fold_left inner "" b.lets in
-    let expr = Format.sprintf "  %s%s" intd (print_imm st b.res) in
-    Format.sprintf "%s\n%s" lets expr
-
-  and print_anf_expr st intd = function
-    | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
-    | ATuple xs ->
-        Format.sprintf "(%s)"
-        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_imm st x) "" xs
-    | Aite (i, t, e) ->
-        let i_b = print_body st intd i in
-        let t_b = print_body st intd t in
-        let f_b = print_body st intd e in
-        Format.sprintf "if%s\n%sthen%s\n%selse%s" i_b intd t_b intd f_b
-    | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
-    | AImm i -> print_imm st i
-    | AClosure (i, env) ->
-        let env = join ", " @@ List.map (print_imm st) env in
-        Format.sprintf "clsr[%s][%s]" (print_imm st i) env
-
-  and print_anf_dec st intd = function
-    | AnfVal x ->
-        Format.sprintf "%slet (%d%s) = %s" intd x.name.value (st x.name.typ)
-          (print_anf_expr st intd x.e)
-    | AnfFun x ->
-        let print_env_var x = x.value |> Format.sprintf "%d" in
-        let intd = intd ^ "  " in
-        let inner xs x = xs ^ "\n" ^ print_anf_dec st intd (AnfVal x) in
-        let name, name_type = (x.name.value, st x.name.typ) in
-        let arg, arg_type = (x.arg.value, st x.arg.typ) in
-        let lets = List.fold_left inner "" x.body.lets in
-        let env_vars = join ", " @@ List.map print_env_var x.env_vars in
-        Format.sprintf "let (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
-          arg_type env_vars lets intd (print_imm st x.body.res)
-
-  let show_anf_program print_type =
-    let do_show_type t = ": " ^ show_ty t in
-    let dont_show_type _ = "" in
-    let st = if print_type then do_show_type else dont_show_type in
-    let inner xs x = Format.sprintf "%s\n%s\n" xs (print_anf_dec st "" x) in
-    List.fold_left inner ""
 end
 
 module AnfConvert = struct

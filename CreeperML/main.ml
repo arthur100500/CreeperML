@@ -9,11 +9,18 @@ open Parser_interface.ParserInterface
 open Type_ast.TypeAst
 open Type_ast.InferTypeUtils
 open Closure.ClosureConvert
-open Anf.AnfTypeAst
-open Anf.AnfConvert
-open Anf.AnfOptimizations
+
+
+(* open Closure.ClosureAst
+   open Anf.AnfTypeAst
+   open Anf.AnfConvert
+   open Anf.AnfOptimizations *)
+
 open Counter.Counter
 open Db.DbTypeAst
+open Pp.PrettyPrinter
+
+
 module NameMap = Map.Make (String)
 
 let pi =
@@ -91,12 +98,12 @@ let () =
   let ( >>= ) = Result.bind in
   let apply_db_renaming p = Ok (db_program_of_typed_program nm p) in
   let apply_closure_convert p = Ok (cf_program p operators) in
-  let apply_anf_convert p = Ok (anf_of_program p) in
-  let apply_anf_optimizations p = Ok (optimize_moves p) in
+  (* let apply_anf_convert p = Ok (anf_of_program p) in
+     let apply_anf_optimizations p = Ok (optimize_moves p) in *)
   let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
   let apply_parser = from_string in
   apply_parser input_program >>= apply_infer >>= apply_db_renaming
-  >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
+  >>= apply_closure_convert
   |> function
-  | Ok x -> show_anf_program true x |> print_endline
+  | Ok x -> pp_cf_program false x |> print_endline
   | Error x -> print_endline x

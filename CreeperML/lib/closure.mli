@@ -53,7 +53,6 @@ module ClosureAst : sig
   val show_cf_typ_expr : cf_typ_expr -> string
   val show_cf_binding : cf_binding -> string
   val show_cf_typ_program : cf_typ_program -> string
-  val show_cf_program : cf_typ_program -> string
 end
 
 module ClosureConvert : sig
