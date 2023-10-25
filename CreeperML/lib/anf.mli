@@ -34,7 +34,7 @@ module AnfConvert : sig
   open AnfTypeAst
   open Closure.ClosureAst
 
-  val anf_of_program : cf_typ_program -> anf_program
+  val anf_of_cf : cf_typ_program -> anf_program
 end
 
 module AnfOptimizations : sig

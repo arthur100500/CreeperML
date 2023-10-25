@@ -131,7 +131,7 @@ module AnfConvert = struct
     let env_vars = l.env_vars in
     { name = l.name; arg = arg_name; body; env_vars }
 
-  let anf_of_program (p : cf_typ_program) : anf_program =
+  let anf_of_cf (p : cf_typ_program) : anf_program =
     let inner xs x =
       match x with
       | FunBinding fb -> xs @ [ AnfFun (anf_of_fun_binding fb) ]

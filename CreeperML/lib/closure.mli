@@ -60,6 +60,5 @@ module ClosureConvert : sig
   open Type_ast.TypeAst
   open Db.DbTypeAst
 
-  val cf_program_of_db_program :
-    (int, ty) typed list -> db_program -> cf_typ_program
+  val cf_of_db : (int, ty) typed list -> db_program -> cf_typ_program
 end

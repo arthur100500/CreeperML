@@ -138,7 +138,7 @@ module DbTypeAst = struct
         { l with body = { lets = []; expr } }
     | _ -> l
 
-  let db_program_of_typed_program (nm : nm) (p : ty typ_program) : db_program =
+  let db_of_typed (nm : nm) (p : ty typ_program) : db_program =
     let p = List.map move_lets p in
     let res, _ =
       List.fold_left

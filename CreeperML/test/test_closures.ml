@@ -8,7 +8,6 @@ open Pp.PrettyPrinter
 open Db.DbTypeAst
 open Closure.ClosureConvert
 open String
-
 module NameMap = Map.Make (String)
 
 let pi =
@@ -83,6 +82,5 @@ let () =
       match top_infer env p with
       | Error msg -> Printf.printf "%s" msg
       | Ok p ->
-          db_program_of_typed_program nm p
-          |> cf_program_of_db_program globals
-          |> print_cf_program false |> trim |> print_endline)
+          db_of_typed nm p |> cf_of_db globals |> print_cf_program false |> trim
+          |> print_endline)

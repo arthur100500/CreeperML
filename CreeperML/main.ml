@@ -93,9 +93,9 @@ let () = print_int a
 
 let () =
   let ( >>= ) = Result.bind in
-  let apply_db_renaming p = Ok (db_program_of_typed_program nm p) in
-  let apply_closure_convert p = Ok (cf_program_of_db_program p operators) in
-  (* let apply_anf_convert p = Ok (anf_of_program p) in
+  let apply_db_renaming p = Ok (db_of_typed nm p) in
+  let apply_closure_convert p = Ok (cf_of_db operators p) in
+  (* let apply_anf_convert p = Ok (anf_of_cf p) in
      let apply_anf_optimizations p = Ok (optimize_moves p) in *)
   let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
   let apply_parser = from_string in

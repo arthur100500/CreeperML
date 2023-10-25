@@ -195,7 +195,7 @@ module ClosureConvert = struct
     in
     (List.concat inner_closures @ closures, cf_let_binding)
 
-  and cf_program_of_db_program globals prog =
+  and cf_of_db globals prog =
     let rec inner g (p : db_program) acc =
       match p with
       | h :: t ->

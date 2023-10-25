@@ -7,8 +7,6 @@ open Pp.PrettyPrinter
 open Db.DbTypeAst
 open String
 
-module NameMap = Map.Make (String)
-
 let pi =
   let int_const = t_ground t_int |> with_lvls 0 0 in
   let unit_const = t_ground t_unit |> with_lvls 0 0 in
@@ -67,5 +65,4 @@ let () =
       match top_infer env p with
       | Error msg -> Printf.printf "%s" msg
       | Ok p ->
-          db_program_of_typed_program nm p
-          |> print_db_program false |> trim |> print_endline)
+          db_of_typed nm p |> print_db_program false |> trim |> print_endline)
