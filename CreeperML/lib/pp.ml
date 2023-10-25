@@ -6,13 +6,13 @@ module PrettyPrinter = struct
   open Db.DbTypeAst
 
   (********************************************************
-                     Pretty print CF AST
+                       Pretty print CF AST
   ********************************************************)
   let show_literal l =
     match l with
     | LInt i -> Format.sprintf "%d" i
     | LFloat f -> Format.sprintf "%f" f
-    | LString s -> Format.sprintf "\"%s\""s
+    | LString s -> Format.sprintf "\"%s\"" s
     | LBool b -> if b then "true" else "false"
     | LUnit -> "()"
 
@@ -86,10 +86,10 @@ module PrettyPrinter = struct
           (st x.name.typ) env_vals lets intd
           (print_cf_expr st x.b.cf_expr)
 
-  let pp_cf_program show_type =
+  let pp_cf_program print_type =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
-    let st = if show_type then do_show_type else dont_show_type in
+    let st = if print_type then do_show_type else dont_show_type in
     List.fold_left (fun xs x -> (xs ^ print_cf_dec st "" x) ^ "\n\n") ""
 
   (********************************************************
@@ -108,8 +108,7 @@ module PrettyPrinter = struct
   and print_anf_expr st intd = function
     | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
     | ATuple xs ->
-        Format.sprintf "(%s)"
-        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_imm st x) "" xs
+        List.map (print_imm st) xs |> join ", " |> Format.sprintf "(%s)"
     | Aite (i, t, e) ->
         let i_b = print_body st intd i in
         let t_b = print_body st intd t in
@@ -141,5 +140,112 @@ module PrettyPrinter = struct
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
     let inner xs x = Format.sprintf "%s\n%s\n" xs (print_anf_dec st "" x) in
+    List.fold_left inner ""
+
+  (********************************************************
+                      Pretty print DB AST
+  ********************************************************)
+  let rec print_db_expr st intd e =
+    match e.value with
+    | DApply (l, r) ->
+        Format.sprintf "(%s %s)" (print_db_expr st intd l)
+          (print_db_expr st intd r)
+    | DLiteral l -> show_literal l
+    | DValue v -> Format.sprintf "v%d" v
+    | DFun fn ->
+        let lval = print_lval fn.lvalue.value in
+        let lets =
+          List.fold_left
+            (fun xs x -> xs ^ "\n" ^ print_db_let_binding st (intd ^ "  ") x)
+            intd fn.b.lets
+        in
+        let expr = print_db_expr st intd fn.b.expr in
+        Format.sprintf "fun (%s%s) -> %s\n%s  %s" lval (st fn.lvalue.typ) lets
+          intd expr
+    | DTuple vs ->
+        List.map (print_db_expr st intd) vs
+        |> join ", " |> Format.sprintf "(%s)"
+    | DIfElse ite ->
+        let i_b = print_db_expr st intd ite.cond in
+        let t_b = print_db_expr st intd ite.t_body in
+        let f_b = print_db_expr st intd ite.f_body in
+        Format.sprintf "if%sthen%selse%s" i_b t_b f_b
+
+  and print_db_let_binding st intd (x : db_let_binding) =
+    let lval = print_lval x.l_v.value in
+    let lets =
+      List.fold_left
+        (fun xs x -> xs ^ "\n" ^ print_db_let_binding st (intd ^ "  ") x)
+        intd x.body.lets
+    in
+    let expr = print_db_expr st intd x.body.expr in
+    let t = st x.l_v.typ in
+    Format.sprintf "%slet %s%s = %s\n%s%s" intd lval t lets intd expr
+
+  let pp_db_program print_type =
+    let do_show_type t = ": " ^ show_ty t in
+    let dont_show_type _ = "" in
+    let st = if print_type then do_show_type else dont_show_type in
+    let inner xs x =
+      Format.sprintf "%s\n%s\n" xs (print_db_let_binding st "" x)
+    in
+    List.fold_left inner ""
+
+
+  (********************************************************
+                      Pretty print Typed AST
+  ********************************************************)
+  let rec print_llval = 
+    function
+    | LvAny -> "_"
+    | LvUnit -> "()"
+    | LvValue v -> v
+    | LvTuple vs ->
+      List.map (fun x -> Position.Position.value x |> print_llval) vs |> join ", " |> Format.sprintf "(%s)"
+
+  let rec print_typ_expr st intd e =
+    match e.value with
+    | TApply (l, r) ->
+        Format.sprintf "(%s %s)" (print_typ_expr st intd l)
+          (print_typ_expr st intd r)
+    | TLiteral l -> show_literal l
+    | TValue v -> Format.sprintf "%s" v
+    | TFun fn ->
+        let lval = print_llval fn.lvalue.value in
+        let lets =
+          List.fold_left
+            (fun xs x -> xs ^ "\n" ^ print_typ_let_binding st (intd ^ "  ") x)
+            intd fn.b.lets
+        in
+        let expr = print_typ_expr st intd fn.b.expr in
+        Format.sprintf "fun (%s%s) -> %s\n%s  %s" lval (st fn.lvalue.typ) lets
+          intd expr
+    | TTuple vs ->
+        List.map (print_typ_expr st intd) vs
+        |> join ", " |> Format.sprintf "(%s)"
+    | TIfElse ite ->
+        let i_b = print_typ_expr st intd ite.cond in
+        let t_b = print_typ_expr st intd ite.t_body in
+        let f_b = print_typ_expr st intd ite.f_body in
+        Format.sprintf "if%sthen%selse%s" i_b t_b f_b
+
+  and print_typ_let_binding st intd (x : ty typ_let_binding) =
+    let lval = print_llval x.l_v.value in
+    let lets =
+      List.fold_left
+        (fun xs x -> xs ^ "\n" ^ print_typ_let_binding st (intd ^ "  ") x)
+        intd x.body.lets
+    in
+    let expr = print_typ_expr st intd x.body.expr in
+    let t = st x.l_v.typ in
+    Format.sprintf "%slet %s%s = %s\n%s%s" intd lval t lets intd expr
+
+  let pp_typ_program print_type =
+    let do_show_type t = ": " ^ show_ty t in
+    let dont_show_type _ = "" in
+    let st = if print_type then do_show_type else dont_show_type in
+    let inner xs x =
+      Format.sprintf "%s\n%s\n" xs (print_typ_let_binding st "" x)
+    in
     List.fold_left inner ""
 end
