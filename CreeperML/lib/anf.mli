@@ -40,3 +40,9 @@ module AnfConvert : sig
 
   val anf_of_program : cf_typ_program -> anf_program
 end
+
+module AnfOptimizations : sig
+  open AnfTypeAst
+
+  val optimize_moves : anf_program -> anf_program
+end

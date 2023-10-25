@@ -74,7 +74,7 @@ module AnfTypeAst = struct
         let arg, arg_type = (x.arg.value, st x.arg.typ) in
         let lets = List.fold_left inner "" x.body.lets in
         let env_vars = join ", " @@ List.map print_env_var x.env_vars in
-        Format.sprintf "let_f (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
+        Format.sprintf "let (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
           arg_type env_vars lets intd (print_imm st x.body.res)
 
   let show_anf_program print_type =
@@ -195,7 +195,7 @@ module AnfConvert = struct
     List.fold_left inner [] p
 end
 
-(*
+
 module AnfOptimizations = struct
   open AnfTypeAst
 
@@ -234,11 +234,12 @@ module AnfOptimizations = struct
         Aite (i, t, e)
     | AImm i -> AImm (rn_imm i)
     | ATupleAccess (t, i) -> ATupleAccess (rn_imm t, i)
+    | AClosure (cl, env) -> AClosure (rn_imm cl, List.map rn_imm env)
 
   and apply_moves_to_val (nmm : nmm) (b : anf_val_binding) =
     let nmm =
       match b.e with
-      | AImm (ImmVal x) -> NameMoveMap.add b.name x nmm
+      | AImm (ImmVal x) -> NameMoveMap.add b.name (try_rename nmm x) nmm
       | _ -> nmm
     in
     let e = apply_moves_to_expr nmm b.e in
@@ -256,10 +257,25 @@ module AnfOptimizations = struct
     (deopt_lst res, nmm)
 
   let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) = 
-    failwith "123"
+    let rn_imm = apply_moves_to_imm nmm in
+    let env_vars = List.map (try_rename nmm) fn.env_vars in
+    let lets, nmm = apply_moves_to_vals nmm fn.body.lets in
+    let res = apply_moves_to_imm nmm fn.body.res in
+    let body = {lets; res} in
+    { fn with body; env_vars }, nmm
 
-  let reduce_moves anf_program =
+  let optimize_moves (p : anf_program) =
+    let deopt_val x = match x with None -> [] | Some x -> [AnfVal x] in
+    let inner (bindings, nmm) binding =
+      match binding with
+      | AnfVal b ->
+        let b, nmm = apply_moves_to_val nmm b in
+        (bindings @ (deopt_val b), nmm)
+      | AnfFun fn ->
+        let fn, nmm = apply_moves_to_fun nmm fn in
+        (bindings @ [AnfFun fn], nmm)
+      in
     let nmm = NameMoveMap.empty in
-    failwith "123"
+    List.fold_left inner ([], nmm) p |> fst
 end
-*)
+
