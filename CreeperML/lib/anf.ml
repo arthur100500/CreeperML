@@ -84,7 +84,7 @@ end
 module AnfConvert = struct
   open AnfTypeAst
   open Type_ast.TypeAst
-  open Closureconvert.ClosureAst
+  open Closure.ClosureAst
   open Counter.Counter
 
   (* constructors *)

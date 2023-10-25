@@ -9,9 +9,9 @@ open CreeperML.Infer.Infer
 open CreeperML.Parser_interface.ParserInterface
 open CreeperML.Type_ast.TypeAst
 open CreeperML.Type_ast.InferTypeUtils
-open CreeperML.Closureconvert.ClosureConvert
-open CreeperML.Anf_type_ast.AnfTypeAst
-open CreeperML.Anf_type_ast.AnfConvert
+open CreeperML.Closure.ClosureConvert
+open CreeperML.Anf.AnfTypeAst
+open CreeperML.Anf.AnfConvert
 open CreeperML.Counter.Counter
 open CreeperML.Db.DbTypeAst
 module NameMap = Map.Make (String)

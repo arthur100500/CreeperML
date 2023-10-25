@@ -2,7 +2,7 @@ module AnfTypeAst : sig
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Position.Position
-  open Closureconvert.ClosureAst
+  open Closure.ClosureAst
   open Db.DbTypeAst
 
   type tlvalue = db_lvalue
@@ -35,7 +35,7 @@ end
 
 module AnfConvert : sig
   open AnfTypeAst
-  open Closureconvert.ClosureAst
+  open Closure.ClosureAst
 
   val anf_of_program : cf_typ_program -> anf_program
 end
