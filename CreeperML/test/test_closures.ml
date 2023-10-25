@@ -1,23 +1,14 @@
-(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
-
-(** SPDX-License-Identifier: LGPL-3.0-or-later *)
-
-open Result
 open CreeperML
+open CreeperML.Parser_interface.ParserInterface
 open Infer.Infer
-open Parser_interface.ParserInterface
-open Type_ast.TypeAst
 open Type_ast.InferTypeUtils
-open Closure.ClosureConvert
-
-(* open Closure.ClosureAst
-   open Anf.AnfTypeAst
-   open Anf.AnfConvert
-   open Anf.AnfOptimizations *)
-
+open Type_ast.TypeAst
 open Counter.Counter
-open Db.DbTypeAst
 open Pp.PrettyPrinter
+open Db.DbTypeAst
+open Closure.ClosureConvert
+open String
+
 module NameMap = Map.Make (String)
 
 let pi =
@@ -51,8 +42,6 @@ let pl =
   let pl = t_arrow int_const arr |> with_lvls 0 0 in
   ("+", pl)
 
-let typed t a : ('a, ty) typed = { value = a; typ = t }
-
 let nm =
   let nm = NameMap.empty in
   let nm = NameMap.add "<=" (cnt_next ()) nm in
@@ -62,7 +51,9 @@ let nm =
   let nm = NameMap.add "print_int" (cnt_next ()) nm in
   nm
 
-let operators =
+let env = [ lr; mi; ml; pi; pl ]
+
+let globals =
   [
     typed (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TBool))
     @@ NameMap.find "<=" nm;
@@ -76,31 +67,22 @@ let operators =
     @@ NameMap.find "print_int" nm;
   ]
 
-let input_program =
-  {|
-let f x =
-  let g y =
-    let h z =
-      let i w =
-        w + z + y + x
-      in i
-    in h
-  in g
-
-let a = f 10 11 12 13
-let () = print_int a
-|}
+(*
+  Used functions and operators:
+    1: <= (i -> i -> b)
+    2: -  (i -> i -> i)
+    3: *  (i -> i -> i)
+    4: +  (i -> i -> i)
+    5: print_int (i -> ())
+*)
 
 let () =
-  let ( >>= ) = Result.bind in
-  let apply_db_renaming p = Ok (db_program_of_typed_program nm p) in
-  let apply_closure_convert p = Ok (cf_program_of_db_program p operators) in
-  (* let apply_anf_convert p = Ok (anf_of_program p) in
-     let apply_anf_optimizations p = Ok (optimize_moves p) in *)
-  let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
-  let apply_parser = from_string in
-  apply_parser input_program >>= apply_infer >>= apply_db_renaming
-  >>= apply_closure_convert
-  |> function
-  | Ok x -> print_cf_program false x |> print_endline
-  | Error x -> print_endline x
+  match from_channel stdin with
+  | Error msg -> Printf.printf "%s" msg
+  | Ok p -> (
+      match top_infer env p with
+      | Error msg -> Printf.printf "%s" msg
+      | Ok p ->
+          db_program_of_typed_program nm p
+          |> cf_program_of_db_program globals
+          |> print_cf_program false |> trim |> print_endline)

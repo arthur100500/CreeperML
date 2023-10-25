@@ -6,8 +6,8 @@ module PrettyPrinter = struct
   open Db.DbTypeAst
 
   (********************************************************
-                       Pretty print CF AST
-  ********************************************************)
+                         Pretty print CF AST
+    ********************************************************)
   let show_literal l =
     match l with
     | LInt i -> Format.sprintf "%d" i
@@ -86,15 +86,15 @@ module PrettyPrinter = struct
           (st x.name.typ) env_vals lets intd
           (print_cf_expr st x.b.cf_expr)
 
-  let pp_cf_program print_type =
+  let print_cf_program print_type =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
     List.fold_left (fun xs x -> (xs ^ print_cf_dec st "" x) ^ "\n\n") ""
 
   (********************************************************
-                     Pretty print ANF AST
-  ********************************************************)
+                       Pretty print ANF AST
+    ********************************************************)
   let print_imm st = function
     | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
     | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
@@ -135,7 +135,7 @@ module PrettyPrinter = struct
         Format.sprintf "let (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
           arg_type env_vars lets intd (print_imm st x.body.res)
 
-  let pp_anf_program print_type =
+  let print_anf_program print_type =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
@@ -143,8 +143,8 @@ module PrettyPrinter = struct
     List.fold_left inner ""
 
   (********************************************************
-                      Pretty print DB AST
-  ********************************************************)
+                        Pretty print DB AST
+    ********************************************************)
   let rec print_db_expr st intd e =
     match e.value with
     | DApply (l, r) ->
@@ -169,7 +169,7 @@ module PrettyPrinter = struct
         let i_b = print_db_expr st intd ite.cond in
         let t_b = print_db_expr st intd ite.t_body in
         let f_b = print_db_expr st intd ite.f_body in
-        Format.sprintf "if%sthen%selse%s" i_b t_b f_b
+        Format.sprintf "if %s then %s else %s" i_b t_b f_b
 
   and print_db_let_binding st intd (x : db_let_binding) =
     let lval = print_lval x.l_v.value in
@@ -180,9 +180,9 @@ module PrettyPrinter = struct
     in
     let expr = print_db_expr st intd x.body.expr in
     let t = st x.l_v.typ in
-    Format.sprintf "%slet %s%s = %s\n%s%s" intd lval t lets intd expr
+    Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval t lets intd expr
 
-  let pp_db_program print_type =
+  let print_db_program print_type =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
@@ -191,17 +191,16 @@ module PrettyPrinter = struct
     in
     List.fold_left inner ""
 
-
   (********************************************************
-                      Pretty print Typed AST
-  ********************************************************)
-  let rec print_llval = 
-    function
+                        Pretty print Typed AST
+    ********************************************************)
+  let rec print_llval = function
     | LvAny -> "_"
     | LvUnit -> "()"
     | LvValue v -> v
     | LvTuple vs ->
-      List.map (fun x -> Position.Position.value x |> print_llval) vs |> join ", " |> Format.sprintf "(%s)"
+        List.map (fun x -> Position.Position.value x |> print_llval) vs
+        |> join ", " |> Format.sprintf "(%s)"
 
   let rec print_typ_expr st intd e =
     match e.value with
@@ -218,7 +217,7 @@ module PrettyPrinter = struct
             intd fn.b.lets
         in
         let expr = print_typ_expr st intd fn.b.expr in
-        Format.sprintf "fun (%s%s) -> %s\n%s  %s" lval (st fn.lvalue.typ) lets
+        Format.sprintf "fun %s%s -> %s\n%s  %s" lval (st fn.lvalue.typ) lets
           intd expr
     | TTuple vs ->
         List.map (print_typ_expr st intd) vs
@@ -227,7 +226,7 @@ module PrettyPrinter = struct
         let i_b = print_typ_expr st intd ite.cond in
         let t_b = print_typ_expr st intd ite.t_body in
         let f_b = print_typ_expr st intd ite.f_body in
-        Format.sprintf "if%sthen%selse%s" i_b t_b f_b
+        Format.sprintf "if %s then %s else %s" i_b t_b f_b
 
   and print_typ_let_binding st intd (x : ty typ_let_binding) =
     let lval = print_llval x.l_v.value in
@@ -238,9 +237,9 @@ module PrettyPrinter = struct
     in
     let expr = print_typ_expr st intd x.body.expr in
     let t = st x.l_v.typ in
-    Format.sprintf "%slet %s%s = %s\n%s%s" intd lval t lets intd expr
+    Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval t lets intd expr
 
-  let pp_typ_program print_type =
+  let print_typ_program print_type =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
