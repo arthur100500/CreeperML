@@ -113,7 +113,7 @@ module DbTypeAst = struct
             nm all_names
       | NoRec -> nm
     in
-        let _dbg_nm_rendered =
+    let _dbg_nm_rendered =
       NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
     in
     let _dbg_l_rendered = show_typ_let_binding (fun _ _ -> ()) l in

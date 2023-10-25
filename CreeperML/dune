@@ -4,4 +4,5 @@
  (libraries CreeperML)
  (instrumentation
   (backend bisect_ppx))
-  (modes (byte exe)))
+ (modes
+  (byte exe)))

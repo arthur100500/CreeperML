@@ -195,7 +195,6 @@ module AnfConvert = struct
     List.fold_left inner [] p
 end
 
-
 module AnfOptimizations = struct
   open AnfTypeAst
 
@@ -256,26 +255,24 @@ module AnfOptimizations = struct
     let res, nmm = List.fold_left inner ([], nmm) vals in
     (deopt_lst res, nmm)
 
-  let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) = 
-    let rn_imm = apply_moves_to_imm nmm in
+  let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) =
     let env_vars = List.map (try_rename nmm) fn.env_vars in
     let lets, nmm = apply_moves_to_vals nmm fn.body.lets in
     let res = apply_moves_to_imm nmm fn.body.res in
-    let body = {lets; res} in
-    { fn with body; env_vars }, nmm
+    let body = { lets; res } in
+    ({ fn with body; env_vars }, nmm)
 
   let optimize_moves (p : anf_program) =
-    let deopt_val x = match x with None -> [] | Some x -> [AnfVal x] in
+    let deopt_val x = match x with None -> [] | Some x -> [ AnfVal x ] in
     let inner (bindings, nmm) binding =
       match binding with
       | AnfVal b ->
-        let b, nmm = apply_moves_to_val nmm b in
-        (bindings @ (deopt_val b), nmm)
+          let b, nmm = apply_moves_to_val nmm b in
+          (bindings @ deopt_val b, nmm)
       | AnfFun fn ->
-        let fn, nmm = apply_moves_to_fun nmm fn in
-        (bindings @ [AnfFun fn], nmm)
-      in
+          let fn, nmm = apply_moves_to_fun nmm fn in
+          (bindings @ [ AnfFun fn ], nmm)
+    in
     let nmm = NameMoveMap.empty in
     List.fold_left inner ([], nmm) p |> fst
 end
-
