@@ -4,16 +4,16 @@
 
 open Result
 
-(* open CreeperML.Anf_type_ast.AnfTypeAst *)
-open CreeperML.Infer.Infer
-open CreeperML.Parser_interface.ParserInterface
-open CreeperML.Type_ast.TypeAst
-open CreeperML.Type_ast.InferTypeUtils
-open CreeperML.Closure.ClosureConvert
-open CreeperML.Anf.AnfTypeAst
-open CreeperML.Anf.AnfConvert
-open CreeperML.Counter.Counter
-open CreeperML.Db.DbTypeAst
+open CreeperML
+open Infer.Infer
+open Parser_interface.ParserInterface
+open Type_ast.TypeAst
+open Type_ast.InferTypeUtils
+open Closure.ClosureConvert
+open Anf.AnfTypeAst
+open Anf.AnfConvert
+open Counter.Counter
+open Db.DbTypeAst
 module NameMap = Map.Make (String)
 
 let lr =
