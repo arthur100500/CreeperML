@@ -58,6 +58,9 @@ module DbTypeAst = struct
         List.map (fun x -> value x |> db_lv nm) vs |> fun x -> DLvTuple x
 
   let rec db_expr (nm : nm) (e : ty typ_expr) : db_expr =
+    let _dbg_nm_rendered =
+      NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
+    in
     match e.value with
     | TApply (l, r) ->
         let lr = db_expr nm l in
@@ -84,15 +87,15 @@ module DbTypeAst = struct
             (fun nm n -> NameMap.add n (cnt_next ()) nm)
             nm all_names
         in
+        let _dbg_nm_rendered =
+          NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
+        in
         let lets, nm_inners =
           List.fold_left
             (fun (xs, nm) x ->
               let inner_r, nm = db_let x nm in
               (xs @ [ inner_r ], nm))
             ([], nm) f.b.lets
-        in
-        let _dbg_nm_rendered =
-          NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
         in
         let expr = db_expr nm_inners f.b.expr in
         let b = { lets; expr } in
@@ -110,15 +113,16 @@ module DbTypeAst = struct
             nm all_names
       | NoRec -> nm
     in
+        let _dbg_nm_rendered =
+      NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
+    in
+    let _dbg_l_rendered = show_typ_let_binding (fun _ _ -> ()) l in
     let lets, nm_inners =
       List.fold_left
         (fun (xs, nm) x ->
           let inner_r, nm = db_let x nm in
           (xs @ [ inner_r ], nm))
         ([], nm) l.body.lets
-    in
-    let _dbg_nm_rendered =
-      NameMap.fold (fun k x xs -> Format.sprintf "%s %s-%d" xs k x) nm ""
     in
     let expr = l.body.expr |> db_expr nm_inners in
     let body = { lets; expr } in
@@ -134,10 +138,11 @@ module DbTypeAst = struct
     ({ rec_f = l.rec_f; body; l_v }, nm)
 
   (* Move declarations of let inside of fun *)
-  let move_lets (l : ty typ_let_binding) : ty typ_let_binding =
+  let rec move_lets (l : ty typ_let_binding) : ty typ_let_binding =
     match l.body.expr.value with
     | TFun f ->
         let inners = l.body.lets @ f.b.lets in
+        let inners = List.map move_lets inners in
         let new_fun = { f with b = { f.b with lets = inners } } in
         let expr = TFun new_fun |> typed l.body.expr.typ in
         { l with body = { lets = []; expr } }

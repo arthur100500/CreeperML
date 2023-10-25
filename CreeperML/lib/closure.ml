@@ -26,6 +26,7 @@ module ClosureAst = struct
     | CFApply of cf_typ_expr * cf_typ_expr
     | CFLiteral of literal
     | CFValue of int
+    | CFClosure of int * (int, ty) typed list
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
 
@@ -67,6 +68,7 @@ module ClosureAst = struct
           (print_cf_expr st t) (print_cf_expr st e)
     | CFValue v -> Format.sprintf "%d" v
     | CFLiteral l -> show_literal l
+    | CFClosure _ -> failwith "Not done yet"
 
   let rec print_lval = function
     | DLvValue v -> Format.sprintf "%d" v
@@ -164,6 +166,7 @@ module ClosureConvert = struct
           NameSet.union i t |> NameSet.union e
       | DFun f -> collect_unbound_variables f global_bindings
     in
+
     let rec collect_variables_in_let (l : db_let_binding) known =
       let e = NameSet.empty in
       let u = NameSet.union in
@@ -248,7 +251,7 @@ module ClosureConvert = struct
             env_vars = env;
           }
         in
-        let f = CFValue genned |> typed e.typ in
+        let f = CFClosure (genned, env) |> typed e.typ in
         (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
 
   and cf_let (globals : NameSet.t) is_rec (l : db_let_binding) =

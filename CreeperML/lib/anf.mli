@@ -16,6 +16,7 @@ module AnfTypeAst : sig
     | Aite of anf_body * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
+    | AClosure of imm * imm list
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }

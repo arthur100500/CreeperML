@@ -3,7 +3,6 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 open Result
-
 open CreeperML
 open Infer.Infer
 open Parser_interface.ParserInterface
@@ -57,10 +56,13 @@ let operators =
 let input_program =
   {|
 let f x =
-  let g y = x in g
+  let g y =
+    let h z =
+      x * y * z in
+    h in
+  g
 
-let a = f 10 11
-let b = f 20 22
+let a = f 10 11 12
 |}
 
 let () =

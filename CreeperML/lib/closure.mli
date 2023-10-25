@@ -26,6 +26,7 @@ module ClosureAst : sig
     | CFApply of cf_typ_expr * cf_typ_expr
     | CFLiteral of literal
     | CFValue of int
+    | CFClosure of int * (int, ty) typed list
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
 
