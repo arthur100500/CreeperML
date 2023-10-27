@@ -69,10 +69,7 @@ module AnfConvert = struct
         let e_body = body e_bindings else_imm in
         let self_tname = cnt_next () |> tname e.typ in
         let self_binding = aite i_body t_body e_body |> binding self_tname in
-        let all_bindings =
-          i_bindings @ t_bindings @ e_bindings @ [ self_binding ]
-        in
-        (all_bindings, self_tname |> immv)
+        ([ self_binding ], self_tname |> immv)
     | CFLiteral l -> ([], l |> tliteral e.typ |> imml)
     | CFValue v -> ([], v |> tname e.typ |> immv)
     | CFTuple elements ->
