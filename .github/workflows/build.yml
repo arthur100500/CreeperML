@@ -31,5 +31,6 @@ jobs:
         run: |
           cd CreeperML
           opam install --deps-only --with-test .
+          opam install menhir
           opam exec -- dune build
           opam exec -- dune fmt
