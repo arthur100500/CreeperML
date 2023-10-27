@@ -15,7 +15,7 @@ let bool_cosnt = "true" | "false"
 let str_const = '"' ['a'-'z' 'A'-'Z' '0'-'9' '_' ' ' '.' ',' ':' ';' '(' ')']* '"'
 
 let startname = ['a'-'z' 'A'-'Z' ''']
-let tailname = ['a'-'z' 'A'-'Z' ''' '_']
+let tailname = ['a'-'z' 'A'-'Z' ''' '_' '0'-'9']
 let name = startname tailname*
 
 let predicate = ['.' '>' '<' '=' '-' '/' '|' '!' '*' '+' '-' ':' '%' '@']
