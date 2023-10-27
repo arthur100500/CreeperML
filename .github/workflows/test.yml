@@ -31,6 +31,7 @@ jobs:
         run: |
           cd CreeperML
           opam install --deps-only --with-test .
+          opam install menhir ocamlformat
           opam exec -- dune build
       - name: Run tests
         run: |
