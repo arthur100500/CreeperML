@@ -112,7 +112,7 @@ module TypeAst = struct
 
   type 'ty typ_program = 'ty typ_let_binding list
   [@@deriving show { with_path = false }]
-
+  
   let rec show_ty = function
     | TyArrow (x, y) -> Format.sprintf "%s -> %s" (show_ty x) (show_ty y)
     | TyGround TInt -> "int"
