@@ -372,6 +372,7 @@ module Infer = struct
         return { expr_typ; expr_ast }
     | EFun f ->
         let* n, t_arg = lvalue f.lvalue in
+        let* env = bind_lv_typ env n t_arg in
         let* let_ast, env =
           f.body |> value |> lets
           |> List.fold_left
@@ -382,6 +383,7 @@ module Infer = struct
                (return ([], env))
           >>| fun (let_ast, env) -> (List.rev let_ast, env)
         in
+        (* 375 WTF *)
         let* env = bind_lv_typ env n t_arg in
         let* t_body = f.body |> value |> expr_b |> tof_expr env in
         new_arrow t_arg t_body.expr_typ |> fun expr_typ ->
