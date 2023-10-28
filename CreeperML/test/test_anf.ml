@@ -52,6 +52,7 @@ let nm =
   nm
 
 let env = [ lr; mi; ml; pi; pl ]
+let typed t a : ('a, ty) typed = { value = a; typ = t }
 
 let globals =
   [
