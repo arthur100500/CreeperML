@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "OCaml earlybird (experimental)",
+            "type": "ocaml.earlybird",
+            "request": "launch",
+            "preLaunchTask": "dune: build /dune",
+            "program": "/mnt/c/Users/arthu/Documents/GitHub/CreeperML/CreeperML/src/_build/default/main.bc",
+            "stopOnEntry": true
+        },
+        {
+            "name": "LLDB",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./_build/default/main.exe",
+            "args": [
+                ""
+            ],
+        }
+    ]
+}

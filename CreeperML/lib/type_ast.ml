@@ -112,6 +112,18 @@ module TypeAst = struct
 
   type 'ty typ_program = 'ty typ_let_binding list
   [@@deriving show { with_path = false }]
+  
+  let rec show_ty = function
+    | TyArrow (x, y) -> Format.sprintf "%s -> %s" (show_ty x) (show_ty y)
+    | TyGround TInt -> "int"
+    | TyGround TString -> "string"
+    | TyGround TBool -> "bool"
+    | TyGround TUnit -> "()"
+    | TyGround TFloat -> "float"
+    | TyTuple xs ->
+        Format.sprintf "(%s)"
+        @@ List.fold_left (fun xs x -> xs ^ "," ^ show_ty x) "" xs
+    | TyVar n -> Format.sprintf "'%s" n
 end
 
 module TypeAstUtils = struct
