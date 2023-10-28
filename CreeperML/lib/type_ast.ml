@@ -76,7 +76,7 @@ module TypeAst = struct
     | TyGround of ground_typ
     | TyVar of name
   [@@deriving show { with_path = false }]
-  
+
   type ('a, 'b) typed = { value : 'a; typ : 'b }
   [@@deriving show { with_path = false }]
 

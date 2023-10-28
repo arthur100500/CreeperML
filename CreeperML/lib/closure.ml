@@ -76,9 +76,7 @@ module ClosureConvert = struct
             NameSet.union xs @@ typ_names_of_lvalue (typed (snd x) @@ fst x))
           e valtyps
     | DLvValue v, ty -> typed ty v |> NameSet.singleton
-    | DLvUnit, ty -> typed ty (-1) |> NameSet.singleton
-    | DLvAny, ty -> typed ty (-1) |> NameSet.singleton
-    | _ -> failwith "Incorrectly typed ast"
+    | _, ty -> typed ty (-1) |> NameSet.singleton
 
   let rec collect_unbound_variables (f : db_fun_body) global_bindings =
     let rec collect_variables_in_expr (e : db_expr) =
@@ -193,9 +191,9 @@ module ClosureConvert = struct
     let inner_cf_lets = List.map snd inner in
     let inner_closures = List.map fst inner in
     let cf_let_body : cf_typ_let_body = { cf_lets = inner_cf_lets; cf_expr } in
-    let cf_let_binding =
-      { rec_f = l.rec_f; l_v = l.l_v; cf_body = cf_let_body }
-    in
+    let rec_f = l.rec_f in
+    let l_v = l.l_v in
+    let cf_let_binding = { rec_f; l_v; cf_body = cf_let_body } in
     (List.concat inner_closures @ closures, cf_let_binding)
 
   and cf_of_db globals prog =

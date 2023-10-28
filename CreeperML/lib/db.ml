@@ -124,7 +124,8 @@ module DbTypeAst = struct
             nm all_names
     in
     let l_v = db_lv nm l.l_v.value |> typed l.l_v.typ in
-    ({ rec_f = l.rec_f; body; l_v }, nm)
+    let rec_f = l.rec_f in
+    ({ rec_f; body; l_v }, nm)
 
   (* Move declarations of let inside of fun *)
   let rec move_lets (l : ty typ_let_binding) : ty typ_let_binding =
