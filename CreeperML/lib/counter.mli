@@ -2,10 +2,6 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-module Counter = struct
-  let cnt = ref 0
-
-  let cnt_next () =
-    cnt := !cnt + 1;
-    !cnt
+module Counter : sig
+  val cnt_next : unit -> int
 end
