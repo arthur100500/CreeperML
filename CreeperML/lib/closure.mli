@@ -36,13 +36,13 @@ module ClosureAst : sig
     f_body : cf_typ_expr;
   }
 
-  and cf_typ_expr = (cf_expr, ty) typed [@@deriving show { with_path = false }]
+  and cf_typ_expr = (cf_expr, ty) typed
 
   type cf_binding =
     | FunBinding of cf_fun_let_binding
     | ValBinding of cf_typ_let_binding
 
-  type cf_typ_program = cf_binding list [@@deriving show { with_path = false }]
+  type cf_typ_program = cf_binding list
 
   (* shows *)
   val show_cf_typ_let_binding : cf_typ_let_binding -> string
