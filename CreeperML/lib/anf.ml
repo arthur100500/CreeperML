@@ -130,11 +130,11 @@ module AnfConvert = struct
     let lets = arg_decs @ bindings @ expr_bindings in
     let body = { lets; res } in
     let env_vars = l.env_vars in
-    { name = l.name; arg = arg_name; body; env_vars }
+    let name = l.name in
+    { name; arg = arg_name; body; env_vars }
 
   let anf_of_cf (p : cf_typ_program) : anf_program =
-    let inner xs x =
-      match x with
+    let inner xs = function
       | FunBinding fb -> xs @ [ AnfFun (anf_of_fun_binding fb) ]
       | ValBinding vb -> xs @ (anf_of_let_binding vb |> List.map aval)
     in
@@ -210,8 +210,7 @@ module AnfOptimizations = struct
 
   let optimize_moves (p : anf_program) =
     let deopt_val x = match x with None -> [] | Some x -> [ AnfVal x ] in
-    let inner (bindings, nmm) binding =
-      match binding with
+    let inner (bindings, nmm) = function
       | AnfVal b ->
           let b, nmm = apply_moves_to_val nmm b in
           (bindings @ deopt_val b, nmm)
