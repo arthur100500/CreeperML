@@ -300,14 +300,27 @@ module Infer = struct
 
   let rec bind_lv_typ env lv t =
     let open Named in
+    let list_combine ns ts =
+      match Base.List.zip ns ts with
+      | Base.List.Or_unequal_lengths.Unequal_lengths ->
+          error
+            "count of names in tuple are not same with count of returned \
+             expressions"
+      | Base.List.Or_unequal_lengths.Ok ps -> return ps
+    in
     match lv with
-    | Named n -> (n, t) :: env
-    | NotNamed -> env
-    | _ -> failwith ""
-  (* | NamedTuple ns -> (
-      value t |> function
-      | TTuple ts -> error ""
-      | _ -> error "tuple isnt tuple") *)
+    | Named n -> (n, t) :: env |> return
+    | NotNamed -> return env
+    | NamedTuple ns -> (
+        match lvl_value t with
+        | TTuple ts ->
+            list_combine ns ts
+            >>= List.fold_left
+                  (fun acc (n, t) ->
+                    let* acc = acc in
+                    bind_lv_typ acc n t)
+                  (return env)
+        | _ -> error "isnt tuple")
 
   module ExprRet = struct
     (* type of value returned by tof_expr *)
@@ -369,7 +382,7 @@ module Infer = struct
                (return ([], env))
           >>| fun (let_ast, env) -> (List.rev let_ast, env)
         in
-        let env = bind_lv_typ env n t_arg in
+        let* env = bind_lv_typ env n t_arg in
         let* t_body = f.body |> value |> expr_b |> tof_expr env in
         new_arrow t_arg t_body.expr_typ |> fun expr_typ ->
         value f.lvalue |> with_typ t_arg |> fun l_v ->
@@ -405,13 +418,13 @@ module Infer = struct
     let open ExprRet in
     let open LetRet in
     let* rec_env =
-      (if is_rec rec_f then lvalue l_v >>| fun (n, t) -> bind_lv_typ env n t
+      (if is_rec rec_f then lvalue l_v >>= fun (n, t) -> bind_lv_typ env n t
        else return env)
       |> fun env ->
       List.fold_left
         (fun env arg ->
           let* env = env in
-          lvalue arg >>| fun (n, t) -> bind_lv_typ env n t)
+          lvalue arg >>= fun (n, t) -> bind_lv_typ env n t)
         env args
     in
     enter_lvl ();
@@ -431,8 +444,8 @@ module Infer = struct
     typ_let_body lets t_e.expr_ast
     |> typ_let_binding rec_f (value l_v |> with_typ expr_typ)
     |> fun let_ast ->
-    lvalue l_v >>| fun (n, _) ->
-    bind_lv_typ rec_env n expr_typ |> fun env ->
+    lvalue l_v >>= fun (n, _) ->
+    bind_lv_typ rec_env n expr_typ >>| fun env ->
     ({ let_typ = expr_typ; let_ast }, env)
 
   (* top level expr infer *)
