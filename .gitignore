@@ -33,3 +33,5 @@ _opam/
 
 # VS Code files
 .vscode/*
+
+.DS_Store
