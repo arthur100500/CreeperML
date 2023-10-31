@@ -119,13 +119,13 @@ jobs:
           BISECT_DIR: /tmp/bisect_ppx_data
           BISECT_FILE: /tmp/bisect_ppx_data/data
 
+      - run: echo ${{ env.latest }} > ${{ env.latest }}/_coverage/projectname.txt
       - name: Update coverage artifact ${{ steps.calc-coverage.outputs.percent }}
         uses: actions/upload-artifact@v3
         with:
           name: coverage
-          path: |
-            ${{ env.latest }}/_coverage
-            projectname.txt
+          path: ${{ env.latest }}/_coverage
+
 
 # API doc
 
