@@ -7,18 +7,7 @@ module ClosureAst : sig
   open Parser_ast.ParserAst
   open Type_ast.TypeAst
 
-  type cf_typ_let_binding = {
-    rec_f : rec_flag;
-    l_v : db_lvalue;
-    cf_body : cf_typ_let_body;
-  }
-
-  and cf_typ_let_body = {
-    cf_lets : cf_typ_let_binding list;
-    cf_expr : cf_typ_expr;
-  }
-
-  and cf_expr =
+  type cf_expr =
     | CFApply of cf_typ_expr * cf_typ_expr
     | CFLiteral of literal
     | CFValue of int
@@ -33,6 +22,17 @@ module ClosureAst : sig
   }
 
   and cf_typ_expr = (cf_expr, ty) typed
+
+  type cf_typ_let_binding = {
+    rec_f : rec_flag;
+    l_v : db_lvalue;
+    cf_body : cf_typ_let_body;
+  }
+
+  and cf_typ_let_body = {
+    cf_lets : cf_typ_let_binding list;
+    cf_expr : cf_typ_expr;
+  }
 
   type cf_fun_let_binding = {
     is_rec : rec_flag;
