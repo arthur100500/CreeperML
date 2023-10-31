@@ -30,3 +30,6 @@ _opam/
 
 # Thoughts file
 *thoughts.txt
+
+# VS Code files
+.vscode/*

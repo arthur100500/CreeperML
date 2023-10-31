@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module ClosureAst : sig
   open Db.DbTypeAst
   open Parser_ast.ParserAst
@@ -43,16 +47,6 @@ module ClosureAst : sig
     | ValBinding of cf_typ_let_binding
 
   type cf_typ_program = cf_binding list
-
-  (* shows *)
-  val show_cf_typ_let_binding : cf_typ_let_binding -> string
-  val show_cf_typ_let_body : cf_typ_let_body -> string
-  val show_cf_fun_let_binding : cf_fun_let_binding -> string
-  val show_cf_expr : cf_expr -> string
-  val show_cf_if_else : cf_if_else -> string
-  val show_cf_typ_expr : cf_typ_expr -> string
-  val show_cf_binding : cf_binding -> string
-  val show_cf_typ_program : cf_typ_program -> string
 end
 
 module ClosureConvert : sig

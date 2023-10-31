@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module PrettyPrinter = struct
   open Closure.ClosureAst
   open Anf.AnfTypeAst
@@ -8,16 +12,14 @@ module PrettyPrinter = struct
   (********************************************************
                          Pretty print CF AST
     ********************************************************)
-  let show_literal l =
-    match l with
+  let show_literal = function
     | LInt i -> Format.sprintf "%d" i
     | LFloat f -> Format.sprintf "%f" f
     | LString s -> Format.sprintf "\"%s\"" s
     | LBool b -> if b then "true" else "false"
     | LUnit -> "()"
 
-  let rec join sep lst =
-    match lst with
+  let rec join sep = function
     | h :: [] -> h
     | h :: t -> Format.sprintf "%s%s%s" h sep (join sep t)
     | [] -> ""
