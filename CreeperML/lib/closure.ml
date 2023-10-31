@@ -18,14 +18,6 @@ module ClosureAst = struct
     cf_expr : cf_typ_expr;
   }
 
-  and cf_fun_let_binding = {
-    is_rec : rec_flag;
-    name : (int, ty) typed;
-    args : db_lvalue;
-    b : cf_typ_let_body;
-    env_vars : (int, ty) typed list;
-  }
-
   and cf_expr =
     | CFApply of cf_typ_expr * cf_typ_expr
     | CFLiteral of literal
@@ -41,6 +33,14 @@ module ClosureAst = struct
   }
 
   and cf_typ_expr = (cf_expr, ty) typed
+
+  type cf_fun_let_binding = {
+    is_rec : rec_flag;
+    name : (int, ty) typed;
+    args : db_lvalue;
+    b : cf_typ_let_body;
+    env_vars : (int, ty) typed list;
+  }
 
   type cf_binding =
     | FunBinding of cf_fun_let_binding
