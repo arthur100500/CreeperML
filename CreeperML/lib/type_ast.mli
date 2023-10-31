@@ -105,8 +105,7 @@ module TypeAst : sig
   (* expresion with his type *)
   (* InferType.typ to infer work *)
   (* TypeAst.ty to infer result *)
-  and ('a, 'b) typed = { value : 'a; typ : 'b }
-
+  type ('a, 'b) typed = { value : 'a; typ : 'b }
   type 'ty typ_lvalue = (lvalue, 'ty) typed
 
   type 'ty typ_let_binding = {

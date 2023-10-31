@@ -80,13 +80,11 @@ module InferUtils = struct
     | TArrow _ | TTuple _ ->
         if t.new_lvl >= generic_lvl then error "missed invariant"
         else if t.new_lvl = marked_lvl then error "occurse fail"
-        else if l < t.new_lvl then
-          if t.new_lvl = t.old_lvl then
-            return
-              (lvls_to_update := t :: !lvls_to_update;
-               t.new_lvl <- l;
-               t)
-          else return t
+        else if l < t.new_lvl && t.new_lvl = t.old_lvl then
+          return
+            (lvls_to_update := t :: !lvls_to_update;
+             t.new_lvl <- l;
+             t)
         else return t
     | _ -> return t
 
