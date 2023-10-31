@@ -33,8 +33,7 @@ module PrettyPrinter = struct
     | CFApply (x, y) ->
         Format.sprintf "(%s %s)" (print_cf_expr st x) (print_cf_expr st y)
     | CFTuple xs ->
-        Format.sprintf "(%s)"
-        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_cf_expr st x) "" xs
+        List.map (print_cf_expr st) xs |> join ", " |> Format.sprintf "(%s)"
     | CFIfElse ite ->
         let i = ite.cond in
         let t = ite.t_body in
@@ -54,8 +53,7 @@ module PrettyPrinter = struct
     | DLvAny -> "any"
     | DLvUnit -> "()"
     | DLvTuple xs ->
-        Format.sprintf "(%s)"
-        @@ List.fold_left (fun xs x -> xs ^ "," ^ print_lval x) "" xs
+        List.map print_lval xs |> join ", " |> Format.sprintf "(%s)"
 
   let rec print_cf_dec st intd = function
     | ValBinding x ->
