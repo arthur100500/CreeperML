@@ -23,7 +23,7 @@ module ParserAst : sig
     | LBool of bool  (** Literals true/false *)
     | LUnit  (** Literal () *)
 
-  and loc_literal = literal position
+  type loc_literal = literal position
 
   type let_binding = {
     (* is recursive, name, names of args, body *)
