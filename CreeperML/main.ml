@@ -72,11 +72,16 @@ let operators =
     @@ NameMap.find "print_int" nm;
   ]
 
-let input_program = {|
-let f (a, b) =
-  a + b
-
-let res = f (10, 11)
+let input_program =
+  {|
+let fac n =
+let rec helper n acc =
+if n <= 1 then 
+acc
+else
+helper (n - 1) (n * acc)
+in
+helper n 1
 |}
 
 let () =
@@ -90,5 +95,5 @@ let () =
   apply_parser input_program >>= apply_infer >>= apply_db_renaming
   >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
   |> function
-  | Ok x -> print_anf_program false x |> print_endline
+  | Ok x -> print_anf_program true x |> print_endline
   | Error x -> print_endline x
