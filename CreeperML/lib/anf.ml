@@ -196,7 +196,7 @@ module AnfOptimizations = struct
     let deopt_lst = List.filter_map (fun x -> x) in
     let inner (binds, nmm) bind =
       let bind, nmm = apply_moves_to_val nmm bind in
-      (binds @ [ bind ], nmm)
+      (binds :: bind, nmm) |> fun (bs, nm) -> (List.rev bs, nm)
     in
     let res, nmm = List.fold_left inner ([], nmm) vals in
     (deopt_lst res, nmm)
