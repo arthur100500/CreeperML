@@ -142,13 +142,10 @@ module DbTypeAst = struct
 
   let db_of_typed (nm : nm) (p : ty typ_program) : db_program =
     let p = List.map move_lets p in
-    let res =
-      List.fold_left
-        (fun (xs, nm) x ->
-          let res, nm = db_let x nm in
-          (res :: xs, nm))
+    List.fold_left
+      (fun (xs, nm) x ->
+        let res, nm = db_let x nm in
+        (res :: xs, nm))
         ([], nm) p
-      |> fun (xs, nm) -> (List.rev xs, nm)
-    in
-    res
+    |> fst |> List.rev
 end
