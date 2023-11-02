@@ -87,7 +87,7 @@ module DbTypeAst = struct
           List.fold_left
             (fun (xs, nm) x ->
               let inner_r, nm = db_let x nm in
-              (xs :: inner_r, nm))
+              (inner_r :: xs, nm))
             ([], nm) f.b.lets |> fun (ls, nm) -> (List.rev ls, nm)
         in
         let expr = db_expr nm_inners f.b.expr in
@@ -110,7 +110,7 @@ module DbTypeAst = struct
       List.fold_left
         (fun (xs, nm) x ->
           let inner_r, nm = db_let x nm in
-          (xs :: inner_r, nm))
+          (inner_r :: xs, nm))
         ([], nm) l.body.lets |> fun (ls, nm) -> (List.rev ls, nm)
     in
     let expr = l.body.expr |> db_expr nm_inners in
@@ -144,7 +144,7 @@ module DbTypeAst = struct
       List.fold_left
         (fun (xs, nm) x ->
           let res, nm = db_let x nm in
-          (xs :: res, nm))
+          (res :: xs, nm))
         ([], nm) p |> fst |> List.rev
     in
     res
