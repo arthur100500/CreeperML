@@ -88,7 +88,8 @@ module DbTypeAst = struct
             (fun (xs, nm) x ->
               let inner_r, nm = db_let x nm in
               (inner_r :: xs, nm))
-            ([], nm) f.b.lets |> fun (ls, nm) -> (List.rev ls, nm)
+            ([], nm) f.b.lets
+          |> fun (xs, nm) -> (List.rev xs, nm)
         in
         let expr = db_expr nm_inners f.b.expr in
         let b = { lets; expr } in
@@ -111,7 +112,8 @@ module DbTypeAst = struct
         (fun (xs, nm) x ->
           let inner_r, nm = db_let x nm in
           (inner_r :: xs, nm))
-        ([], nm) l.body.lets |> fun (ls, nm) -> (List.rev ls, nm)
+        ([], nm) l.body.lets
+      |> fun (xs, nm) -> (List.rev xs, nm)
     in
     let expr = l.body.expr |> db_expr nm_inners in
     let body = { lets; expr } in
@@ -145,7 +147,8 @@ module DbTypeAst = struct
         (fun (xs, nm) x ->
           let res, nm = db_let x nm in
           (res :: xs, nm))
-        ([], nm) p |> fst |> List.rev
+        ([], nm) p
+      |> fun (xs, nm) -> (List.rev xs, nm)
     in
     res
 end
