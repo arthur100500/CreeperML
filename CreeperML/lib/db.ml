@@ -1,3 +1,7 @@
+(** Copyright 2023-2024, Arthur Alekseev and Starcev Matvey *)
+
+(** SPDX-License-Identifier: LGPL-3.0-or-later *)
+
 module DbTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
@@ -5,9 +9,7 @@ module DbTypeAst = struct
   open Counter.Counter
 
   type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
-  [@@deriving show { with_path = false }]
-
-  type db_lvalue = (ilvalue, ty) typed [@@deriving show { with_path = false }]
+  type db_lvalue = (ilvalue, ty) typed
 
   type db_let_binding = {
     rec_f : rec_flag;
@@ -25,11 +27,11 @@ module DbTypeAst = struct
     | DTuple of db_expr list
     | DIfElse of tif_else
 
+  and db_expr = (d_expr, ty) typed
   and db_fun_body = { lvalue : db_lvalue; b : db_let_body }
   and tif_else = { cond : db_expr; t_body : db_expr; f_body : db_expr }
-  and db_expr = (d_expr, ty) typed [@@deriving show { with_path = false }]
 
-  type db_program = db_let_binding list [@@deriving show { with_path = false }]
+  type db_program = db_let_binding list
 
   (* END AST, BEGIN TRANSLATE*)
 
@@ -72,10 +74,7 @@ module DbTypeAst = struct
         let f_body = er in
         DIfElse { cond; t_body; f_body } |> typed e.typ
     | TLiteral l -> DLiteral l |> typed e.typ
-    | TValue v -> (
-        match NameMap.find_opt v nm with
-        | None -> failwith "Variable not found"
-        | Some x -> DValue x |> typed e.typ)
+    | TValue v -> NameMap.find v nm |> fun x -> DValue x |> typed e.typ
     | TTuple vs -> List.map (db_expr nm) vs |> fun x -> DTuple x |> typed e.typ
     | TFun f ->
         let all_names = names_of_lvalue f.lvalue.value in
@@ -88,8 +87,9 @@ module DbTypeAst = struct
           List.fold_left
             (fun (xs, nm) x ->
               let inner_r, nm = db_let x nm in
-              (xs @ [ inner_r ], nm))
+              (inner_r :: xs, nm))
             ([], nm) f.b.lets
+          |> fun (xs, nm) -> (List.rev xs, nm)
         in
         let expr = db_expr nm_inners f.b.expr in
         let b = { lets; expr } in
@@ -111,8 +111,9 @@ module DbTypeAst = struct
       List.fold_left
         (fun (xs, nm) x ->
           let inner_r, nm = db_let x nm in
-          (xs @ [ inner_r ], nm))
+          (inner_r :: xs, nm))
         ([], nm) l.body.lets
+      |> fun (xs, nm) -> (List.rev xs, nm)
     in
     let expr = l.body.expr |> db_expr nm_inners in
     let body = { lets; expr } in
@@ -125,7 +126,8 @@ module DbTypeAst = struct
             nm all_names
     in
     let l_v = db_lv nm l.l_v.value |> typed l.l_v.typ in
-    ({ rec_f = l.rec_f; body; l_v }, nm)
+    let rec_f = l.rec_f in
+    ({ rec_f; body; l_v }, nm)
 
   (* Move declarations of let inside of fun *)
   let rec move_lets (l : ty typ_let_binding) : ty typ_let_binding =
@@ -144,8 +146,9 @@ module DbTypeAst = struct
       List.fold_left
         (fun (xs, nm) x ->
           let res, nm = db_let x nm in
-          (xs @ [ res ], nm))
+          (res :: xs, nm))
         ([], nm) p
+      |> fun (xs, nm) -> (List.rev xs, nm)
     in
     res
 end

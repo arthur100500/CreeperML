@@ -17,8 +17,9 @@ module ParserAst = struct
     | LString of string
     | LBool of bool
     | LUnit
+  [@@deriving show { with_path = false }]
 
-  and loc_literal = literal position [@@deriving show { with_path = false }]
+  type loc_literal = literal position [@@deriving show { with_path = false }]
 
   type let_binding = {
     rec_f : rec_flag;
