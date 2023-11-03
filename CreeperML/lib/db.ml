@@ -146,6 +146,6 @@ module DbTypeAst = struct
       (fun (xs, nm) x ->
         let res, nm = db_let x nm in
         (res :: xs, nm))
-        ([], nm) p
+      ([], nm) p
     |> fst |> List.rev
 end

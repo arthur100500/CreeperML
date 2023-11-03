@@ -199,7 +199,9 @@ module AnfOptimizations = struct
       let bind, nmm = apply_moves_to_val nmm bind in
       (bind :: binds, nmm)
     in
-    let res, nmm = List.fold_left inner ([], nmm) vals  |> fun (bs, nm) -> (List.rev bs, nm)in
+    let res, nmm =
+      List.fold_left inner ([], nmm) vals |> fun (bs, nm) -> (List.rev bs, nm)
+    in
     (deopt_lst res, nmm)
 
   let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) =
