@@ -5,9 +5,9 @@
 module AnfTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
 
-  type tlvalue = db_lvalue
+  type tlvalue = index_lvalue
   type tliteral = (literal, ty) typed
   type tname = (int, ty) typed
   type imm = ImmVal of tname | ImmLit of tliteral
@@ -188,6 +188,7 @@ module AnfOptimizations = struct
       | _ -> nmm
     in
     let e = apply_moves_to_expr nmm b.e in
+
     let b = { b with e } in
     let b = match b.e with AImm (ImmVal _) -> None | _ -> Some b in
     (b, nmm)
@@ -196,9 +197,11 @@ module AnfOptimizations = struct
     let deopt_lst = List.filter_map (fun x -> x) in
     let inner (binds, nmm) bind =
       let bind, nmm = apply_moves_to_val nmm bind in
-      (bind :: binds, nmm) |> fun (bs, nm) -> (List.rev bs, nm)
+      (bind :: binds, nmm)
     in
-    let res, nmm = List.fold_left inner ([], nmm) vals in
+    let res, nmm =
+      List.fold_left inner ([], nmm) vals |> fun (bs, nm) -> (List.rev bs, nm)
+    in
     (deopt_lst res, nmm)
 
   let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) =

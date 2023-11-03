@@ -5,7 +5,7 @@ open Type_ast.InferTypeUtils
 open Type_ast.TypeAst
 open Counter.Counter
 open Pp.PrettyPrinter
-open Db.DbTypeAst
+open Indexed_ast.IndexedTypeAst
 open Closure.ClosureConvert
 open String
 open Anf.AnfConvert
@@ -85,5 +85,5 @@ let () =
       match top_infer env p with
       | Error msg -> Printf.printf "%s" msg
       | Ok p ->
-          db_of_typed nm p |> cf_of_db globals |> anf_of_cf |> optimize_moves
-          |> print_anf_program false |> trim |> print_endline)
+          index_of_typed nm p |> cf_of_index globals |> anf_of_cf
+          |> optimize_moves |> print_anf_program false |> trim |> print_endline)

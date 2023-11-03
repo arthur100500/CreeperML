@@ -2,34 +2,34 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-module DbTypeAst : sig
+module IndexedTypeAst : sig
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
 
   type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
-  type db_lvalue = (ilvalue, ty) typed
+  type index_lvalue = (ilvalue, ty) typed
 
-  type db_let_binding = {
+  type index_let_binding = {
     rec_f : rec_flag;
-    l_v : db_lvalue;
-    body : db_let_body;
+    l_v : index_lvalue;
+    body : index_let_body;
   }
 
-  and db_let_body = { lets : db_let_binding list; expr : db_expr }
+  and index_let_body = { lets : index_let_binding list; expr : index_expr }
 
   and d_expr =
-    | DApply of db_expr * db_expr
+    | DApply of index_expr * index_expr
     | DLiteral of literal
     | DValue of int
-    | DFun of db_fun_body
-    | DTuple of db_expr list
+    | DFun of index_fun_body
+    | DTuple of index_expr list
     | DIfElse of tif_else
 
-  and db_fun_body = { lvalue : db_lvalue; b : db_let_body }
-  and tif_else = { cond : db_expr; t_body : db_expr; f_body : db_expr }
-  and db_expr = (d_expr, ty) typed
+  and index_fun_body = { lvalue : index_lvalue; b : index_let_body }
+  and tif_else = { cond : index_expr; t_body : index_expr; f_body : index_expr }
+  and index_expr = (d_expr, ty) typed
 
-  type db_program = db_let_binding list
+  type index_program = index_let_binding list
 
   module NameMap : sig
     type key = string
@@ -39,5 +39,5 @@ module DbTypeAst : sig
     val add : key -> 'a -> 'a t -> 'a t
   end
 
-  val db_of_typed : int NameMap.t -> ty typ_program -> db_program
+  val index_of_typed : int NameMap.t -> ty typ_program -> index_program
 end
