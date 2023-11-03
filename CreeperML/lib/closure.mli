@@ -3,7 +3,7 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 module ClosureAst : sig
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
   open Parser_ast.ParserAst
   open Type_ast.TypeAst
 
@@ -25,7 +25,7 @@ module ClosureAst : sig
 
   type cf_typ_let_binding = {
     rec_f : rec_flag;
-    l_v : db_lvalue;
+    l_v : index_lvalue;
     cf_body : cf_typ_let_body;
   }
 
@@ -37,7 +37,7 @@ module ClosureAst : sig
   type cf_fun_let_binding = {
     is_rec : rec_flag;
     name : (int, ty) typed;
-    args : db_lvalue;
+    args : index_lvalue;
     b : cf_typ_let_body;
     env_vars : (int, ty) typed list;
   }
@@ -52,7 +52,7 @@ end
 module ClosureConvert : sig
   open ClosureAst
   open Type_ast.TypeAst
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
 
-  val cf_of_db : (int, ty) typed list -> db_program -> cf_typ_program
+  val cf_of_index : (int, ty) typed list -> index_program -> cf_typ_program
 end

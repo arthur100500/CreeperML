@@ -4,7 +4,7 @@ open Infer.Infer
 open Type_ast.InferTypeUtils
 open Counter.Counter
 open Pp.PrettyPrinter
-open Db.DbTypeAst
+open Indexed_ast.IndexedTypeAst
 open String
 
 let pi =
@@ -65,4 +65,5 @@ let () =
       match top_infer env p with
       | Error msg -> Printf.printf "%s" msg
       | Ok p ->
-          db_of_typed nm p |> print_db_program false |> trim |> print_endline)
+          index_of_typed nm p |> print_index_program false |> trim
+          |> print_endline)

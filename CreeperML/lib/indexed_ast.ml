@@ -2,36 +2,36 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-module DbTypeAst = struct
+module IndexedTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Position.Position
   open Counter.Counter
 
   type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
-  type db_lvalue = (ilvalue, ty) typed
+  type index_lvalue = (ilvalue, ty) typed
 
-  type db_let_binding = {
+  type index_let_binding = {
     rec_f : rec_flag;
-    l_v : db_lvalue;
-    body : db_let_body;
+    l_v : index_lvalue;
+    body : index_let_body;
   }
 
-  and db_let_body = { lets : db_let_binding list; expr : db_expr }
+  and index_let_body = { lets : index_let_binding list; expr : index_expr }
 
   and d_expr =
-    | DApply of db_expr * db_expr
+    | DApply of index_expr * index_expr
     | DLiteral of literal
     | DValue of int
-    | DFun of db_fun_body
-    | DTuple of db_expr list
+    | DFun of index_fun_body
+    | DTuple of index_expr list
     | DIfElse of tif_else
 
-  and db_expr = (d_expr, ty) typed
-  and db_fun_body = { lvalue : db_lvalue; b : db_let_body }
-  and tif_else = { cond : db_expr; t_body : db_expr; f_body : db_expr }
+  and index_expr = (d_expr, ty) typed
+  and index_fun_body = { lvalue : index_lvalue; b : index_let_body }
+  and tif_else = { cond : index_expr; t_body : index_expr; f_body : index_expr }
 
-  type db_program = db_let_binding list
+  type index_program = index_let_binding list
 
   (* END AST, BEGIN TRANSLATE*)
 
@@ -51,31 +51,32 @@ module DbTypeAst = struct
         List.map (fun x -> value x |> names_of_lvalue) vs
         |> List.fold_left ( @ ) []
 
-  let rec db_lv (nm : nm) (l : lvalue) =
+  let rec index_lv (nm : nm) (l : lvalue) =
     match l with
     | LvAny -> DLvAny
     | LvUnit -> DLvUnit
     | LvValue v -> DLvValue (NameMap.find v nm)
     | LvTuple vs ->
-        List.map (fun x -> value x |> db_lv nm) vs |> fun x -> DLvTuple x
+        List.map (fun x -> value x |> index_lv nm) vs |> fun x -> DLvTuple x
 
-  let rec db_expr (nm : nm) (e : ty typ_expr) : db_expr =
+  let rec index_expr (nm : nm) (e : ty typ_expr) : index_expr =
     match e.value with
     | TApply (l, r) ->
-        let lr = db_expr nm l in
-        let rr = db_expr nm r in
+        let lr = index_expr nm l in
+        let rr = index_expr nm r in
         DApply (lr, rr) |> typed e.typ
     | TIfElse ite ->
-        let ir = db_expr nm ite.cond in
-        let tr = db_expr nm ite.t_body in
-        let er = db_expr nm ite.f_body in
+        let ir = index_expr nm ite.cond in
+        let tr = index_expr nm ite.t_body in
+        let er = index_expr nm ite.f_body in
         let cond = ir in
         let t_body = tr in
         let f_body = er in
         DIfElse { cond; t_body; f_body } |> typed e.typ
     | TLiteral l -> DLiteral l |> typed e.typ
     | TValue v -> NameMap.find v nm |> fun x -> DValue x |> typed e.typ
-    | TTuple vs -> List.map (db_expr nm) vs |> fun x -> DTuple x |> typed e.typ
+    | TTuple vs ->
+        List.map (index_expr nm) vs |> fun x -> DTuple x |> typed e.typ
     | TFun f ->
         let all_names = names_of_lvalue f.lvalue.value in
         let nm =
@@ -86,18 +87,18 @@ module DbTypeAst = struct
         let lets, nm_inners =
           List.fold_left
             (fun (xs, nm) x ->
-              let inner_r, nm = db_let x nm in
+              let inner_r, nm = index_let x nm in
               (inner_r :: xs, nm))
             ([], nm) f.b.lets
           |> fun (xs, nm) -> (List.rev xs, nm)
         in
-        let expr = db_expr nm_inners f.b.expr in
+        let expr = index_expr nm_inners f.b.expr in
         let b = { lets; expr } in
-        let lvalue = db_lv nm f.lvalue.value |> typed f.lvalue.typ in
+        let lvalue = index_lv nm f.lvalue.value |> typed f.lvalue.typ in
         let f = { lvalue; b } in
         DFun f |> typed e.typ
 
-  and db_let (l : ty typ_let_binding) nm : db_let_binding res =
+  and index_let (l : ty typ_let_binding) nm : index_let_binding res =
     let all_names = names_of_lvalue l.l_v.value in
     let nm =
       match l.rec_f with
@@ -110,12 +111,12 @@ module DbTypeAst = struct
     let lets, nm_inners =
       List.fold_left
         (fun (xs, nm) x ->
-          let inner_r, nm = db_let x nm in
+          let inner_r, nm = index_let x nm in
           (inner_r :: xs, nm))
         ([], nm) l.body.lets
       |> fun (xs, nm) -> (List.rev xs, nm)
     in
-    let expr = l.body.expr |> db_expr nm_inners in
+    let expr = l.body.expr |> index_expr nm_inners in
     let body = { lets; expr } in
     let nm =
       match l.rec_f with
@@ -125,7 +126,7 @@ module DbTypeAst = struct
             (fun nm n -> NameMap.add n (cnt_next ()) nm)
             nm all_names
     in
-    let l_v = db_lv nm l.l_v.value |> typed l.l_v.typ in
+    let l_v = index_lv nm l.l_v.value |> typed l.l_v.typ in
     let rec_f = l.rec_f in
     ({ rec_f; body; l_v }, nm)
 
@@ -140,11 +141,11 @@ module DbTypeAst = struct
         { l with body = { lets = []; expr } }
     | _ -> l
 
-  let db_of_typed (nm : nm) (p : ty typ_program) : db_program =
+  let index_of_typed (nm : nm) (p : ty typ_program) : index_program =
     let p = List.map move_lets p in
     List.fold_left
       (fun (xs, nm) x ->
-        let res, nm = db_let x nm in
+        let res, nm = index_let x nm in
         (res :: xs, nm))
       ([], nm) p
     |> fst |> List.rev
