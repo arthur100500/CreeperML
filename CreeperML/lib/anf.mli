@@ -13,19 +13,19 @@ module AnfTypeAst : sig
   type imm = ImmVal of tname | ImmLit of tliteral
 
   type anf_expr =
-    | AApply of imm * imm
+    | AApply of imm * imm list
     | ATuple of imm list
-    | Aite of anf_body * anf_body * anf_body
+    | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
-    | AClosure of imm * imm list
+    | AClosure of tname * imm list
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
 
   type anf_fun_binding = {
     name : tname;
-    arg : tname;
+    args : tname list;
     body : anf_body;
     env_vars : tname list;
   }

@@ -8,7 +8,7 @@ module ClosureAst : sig
   open Type_ast.TypeAst
 
   type cf_expr =
-    | CFApply of cf_typ_expr * cf_typ_expr
+    | CFApply of cf_typ_expr * cf_typ_expr list
     | CFLiteral of literal
     | CFValue of int
     | CFClosure of int * (int, ty) typed list
@@ -37,7 +37,7 @@ module ClosureAst : sig
   type cf_fun_let_binding = {
     is_rec : rec_flag;
     name : (int, ty) typed;
-    args : index_lvalue;
+    args : index_lvalue list;
     b : cf_typ_let_body;
     env_vars : (int, ty) typed list;
   }

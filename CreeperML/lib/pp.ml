@@ -30,8 +30,9 @@ module PrettyPrinter = struct
 
   let rec print_cf_expr st (e : cf_typ_expr) =
     match e.value with
-    | CFApply (x, y) ->
-        Format.sprintf "(%s %s)" (print_cf_expr st x) (print_cf_expr st y)
+    | CFApply (x, args) ->
+        let args = List.map (print_cf_expr st) args |> join " " in
+        Format.sprintf "(%s %s)" (print_cf_expr st x) args
     | CFTuple xs ->
         List.map (print_cf_expr st) xs |> join ", " |> Format.sprintf "(%s)"
     | CFIfElse ite ->
@@ -79,7 +80,7 @@ module PrettyPrinter = struct
           List.fold_left
             (fun xs (x : index_lvalue) ->
               Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
-            "" [ x.args ]
+            "" x.args
         in
         let env_vals = print_env_vars st x.env_vars in
         Format.sprintf "%sletc %d%s%s %s = %s\n%s  %s" intd lval args
@@ -106,19 +107,21 @@ module PrettyPrinter = struct
     Format.sprintf "%s\n%s" lets expr
 
   and print_anf_expr st intd = function
-    | AApply (x, y) -> Format.sprintf "%s %s" (print_imm st x) (print_imm st y)
+    | AApply (x, y) ->
+        let args = List.map (print_imm st) y |> join " " in
+        Format.sprintf "%s %s" (print_imm st x) args
     | ATuple xs ->
         List.map (print_imm st) xs |> join ", " |> Format.sprintf "(%s)"
     | Aite (i, t, e) ->
-        let i_b = print_body st intd i in
+        let i_b = print_imm st i in
         let t_b = print_body st intd t in
         let f_b = print_body st intd e in
-        Format.sprintf "if%s\n%sthen%s\n%selse%s" i_b intd t_b intd f_b
+        Format.sprintf "if %s then%s\n%selse%s" i_b t_b intd f_b
     | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
     | AImm i -> print_imm st i
     | AClosure (i, env) ->
         let env = join ", " @@ List.map (print_imm st) env in
-        Format.sprintf "clsr[%s][%s]" (print_imm st i) env
+        Format.sprintf "clsr[v(%d%s)][%s]" i.value (st i.typ) env
 
   and print_anf_dec st intd = function
     | AnfVal x ->
@@ -129,11 +132,14 @@ module PrettyPrinter = struct
         let intd = intd ^ "  " in
         let inner xs x = xs ^ "\n" ^ print_anf_dec st intd (AnfVal x) in
         let name, name_type = (x.name.value, st x.name.typ) in
-        let arg, arg_type = (x.arg.value, st x.arg.typ) in
+        let args =
+          List.map (fun x -> Format.sprintf "(%d%s)" x.value (st x.typ)) x.args
+          |> join " "
+        in
         let lets = List.fold_left inner "" x.body.lets in
         let env_vars = join ", " @@ List.map print_env_var x.env_vars in
-        Format.sprintf "let (%d%s) (%d%s) [%s] = %s\n%s%s" name name_type arg
-          arg_type env_vars lets intd (print_imm st x.body.res)
+        Format.sprintf "let (%d%s) %s [%s] = %s\n%s%s" name name_type args
+          env_vars lets intd (print_imm st x.body.res)
 
   let print_anf_program print_type =
     let do_show_type t = ": " ^ show_ty t in
