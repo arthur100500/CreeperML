@@ -110,10 +110,10 @@ module PrettyPrinter = struct
     | ATuple xs ->
         List.map (print_imm st) xs |> join ", " |> Format.sprintf "(%s)"
     | Aite (i, t, e) ->
-        let i_b = print_body st intd i in
+        let i_b = print_imm st i in
         let t_b = print_body st intd t in
         let f_b = print_body st intd e in
-        Format.sprintf "if%s\n%sthen%s\n%selse%s" i_b intd t_b intd f_b
+        Format.sprintf "if %s then%s\n%selse%s" i_b t_b intd f_b
     | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
     | AImm i -> print_imm st i
     | AClosure (i, env) ->

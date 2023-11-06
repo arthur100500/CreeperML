@@ -6,7 +6,12 @@ module IndexedTypeAst : sig
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
 
-  type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
+  type ilvalue =
+    | DLvAny  (** lvalue _ *)
+    | DLvUnit  (** lvalue () *)
+    | DLvValue of int  (** lvalue like a *)
+    | DLvTuple of ilvalue list  (** lvalue like (lvalue, lvalue, ...) *)
+
   type index_lvalue = (ilvalue, ty) typed
 
   type index_let_binding = {
@@ -18,12 +23,12 @@ module IndexedTypeAst : sig
   and index_let_body = { lets : index_let_binding list; expr : index_expr }
 
   and d_expr =
-    | DApply of index_expr * index_expr
-    | DLiteral of literal
-    | DValue of int
-    | DFun of index_fun_body
-    | DTuple of index_expr list
-    | DIfElse of tif_else
+    | DApply of index_expr * index_expr  (** index expr like (expr) (expr) *)
+    | DLiteral of literal  (** index expr like 123/"abc"/true/false/... *)
+    | DValue of int  (** index expr like a/b/c *)
+    | DFun of index_fun_body  (** index expr like fun arg -> ... *)
+    | DTuple of index_expr list  (** index expr like (a, b, c) *)
+    | DIfElse of tif_else  (** index expr like if a then b else c *)
 
   and index_fun_body = { lvalue : index_lvalue; b : index_let_body }
   and tif_else = { cond : index_expr; t_body : index_expr; f_body : index_expr }

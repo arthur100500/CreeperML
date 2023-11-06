@@ -18,11 +18,9 @@
   > helper n 1
   > EOF
   let (11) (23) [7, 8] = 
-    let (22) = if
-      let (14) = v(1) v(8)
-      let (15) = v(14) l(1)
-      v(15)
-    then
+    let (14) = v(1) v(8)
+    let (15) = v(14) l(1)
+    let (22) = if v(15) then
       v(23)
     else
       let (16) = v(2) v(8)
