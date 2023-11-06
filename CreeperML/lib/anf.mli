@@ -15,7 +15,7 @@ module AnfTypeAst : sig
   type anf_expr =
     | AApply of imm * imm
     | ATuple of imm list
-    | Aite of anf_body * anf_body * anf_body
+    | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
     | AClosure of imm * imm list

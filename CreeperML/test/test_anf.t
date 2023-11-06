@@ -13,11 +13,9 @@
   > EOF
   let (11) (23) [7, 8] = 
     let (9) = v(23)
-    let (22) = if
-      let (14) = v(1) v(8)
-      let (15) = v(14) l(1)
-      v(15)
-    then
+    let (14) = v(1) v(8)
+    let (15) = v(14) l(1)
+    let (22) = if v(15) then
       v(9)
     else
       let (16) = v(2) v(8)
@@ -146,13 +144,15 @@
   $ ./test_anf.exe <<- EOF
   > let r = if 3 + 5 <= 22 then 2 - 3 else 4 + 5
   > EOF
-  let (15) = if
-    let (7) = v(4) l(3)
-    let (8) = v(7) l(5)
-    let (9) = v(1) v(8)
-    let (10) = v(9) l(22)
-    v(10)
-  then
+  let (7) = v(4) l(3)
+  
+  let (8) = v(7) l(5)
+  
+  let (9) = v(1) v(8)
+  
+  let (10) = v(9) l(22)
+  
+  let (15) = if v(10) then
     let (11) = v(2) l(2)
     let (12) = v(11) l(3)
     v(12)
@@ -170,26 +170,25 @@
   $ ./test_anf.exe <<- EOF
   > let r = if (if 2 - 10 <= 2 then false else true) then 2 - 3 else (if true then 77 - 33 + 23 else (25 + 11 * 3))
   > EOF
-  let (23) = if
-    let (11) = if
-      let (7) = v(2) l(2)
-      let (8) = v(7) l(10)
-      let (9) = v(1) v(8)
-      let (10) = v(9) l(2)
-      v(10)
-    then
-      l(false)
-    else
-      l(true)
-    v(11)
-  then
+  let (7) = v(2) l(2)
+  
+  let (8) = v(7) l(10)
+  
+  let (9) = v(1) v(8)
+  
+  let (10) = v(9) l(2)
+  
+  let (11) = if v(10) then
+    l(false)
+  else
+    l(true)
+  
+  let (23) = if v(11) then
     let (12) = v(2) l(2)
     let (13) = v(12) l(3)
     v(13)
   else
-    let (22) = if
-      l(true)
-    then
+    let (22) = if l(true) then
       let (14) = v(2) l(77)
       let (15) = v(14) l(33)
       let (16) = v(4) v(15)
