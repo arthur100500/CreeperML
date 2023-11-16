@@ -5,9 +5,9 @@
 module AnfTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
 
-  type tlvalue = db_lvalue
+  type tlvalue = index_lvalue
   type tliteral = (literal, ty) typed
   type tname = (int, ty) typed
   type imm = ImmVal of tname | ImmLit of tliteral
@@ -15,7 +15,7 @@ module AnfTypeAst = struct
   type anf_expr =
     | AApply of imm * imm
     | ATuple of imm list
-    | Aite of anf_body * anf_body * anf_body
+    | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
     | AClosure of imm * imm list
@@ -68,12 +68,11 @@ module AnfConvert = struct
         let i_bindings, if_imm = anf_of_expr ite.cond in
         let t_bindings, then_imm = anf_of_expr ite.t_body in
         let e_bindings, else_imm = anf_of_expr ite.f_body in
-        let i_body = body i_bindings if_imm in
         let t_body = body t_bindings then_imm in
         let e_body = body e_bindings else_imm in
         let self_tname = cnt_next () |> tname e.typ in
-        let self_binding = aite i_body t_body e_body |> binding self_tname in
-        ([ self_binding ], self_tname |> immv)
+        let self_binding = aite if_imm t_body e_body |> binding self_tname in
+        (i_bindings @ [ self_binding ], self_tname |> immv)
     | CFLiteral l -> ([], l |> tliteral e.typ |> imml)
     | CFValue v -> ([], v |> tname e.typ |> immv)
     | CFTuple elements ->
@@ -167,9 +166,7 @@ module AnfOptimizations = struct
     | AApply (x, y) -> AApply (rn_imm x, rn_imm y)
     | ATuple xs -> ATuple (List.map rn_imm xs)
     | Aite (i, t, e) ->
-        let ilets, nmm = apply_moves_to_vals nmm i.lets in
-        let ires = apply_moves_to_imm nmm i.res in
-        let i = { lets = ilets; res = ires } in
+        let i = rn_imm i in
         let tlets, nmm = apply_moves_to_vals nmm t.lets in
         let tres = apply_moves_to_imm nmm t.res in
         let t = { lets = tlets; res = tres } in
@@ -188,6 +185,7 @@ module AnfOptimizations = struct
       | _ -> nmm
     in
     let e = apply_moves_to_expr nmm b.e in
+
     let b = { b with e } in
     let b = match b.e with AImm (ImmVal _) -> None | _ -> Some b in
     (b, nmm)
@@ -196,9 +194,11 @@ module AnfOptimizations = struct
     let deopt_lst = List.filter_map (fun x -> x) in
     let inner (binds, nmm) bind =
       let bind, nmm = apply_moves_to_val nmm bind in
-      (bind :: binds, nmm) |> fun (bs, nm) -> (List.rev bs, nm)
+      (bind :: binds, nmm)
     in
-    let res, nmm = List.fold_left inner ([], nmm) vals in
+    let res, nmm =
+      List.fold_left inner ([], nmm) vals |> fun (bs, nm) -> (List.rev bs, nm)
+    in
     (deopt_lst res, nmm)
 
   let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) =

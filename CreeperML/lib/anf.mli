@@ -5,9 +5,9 @@
 module AnfTypeAst : sig
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
 
-  type tlvalue = db_lvalue
+  type tlvalue = index_lvalue
   type tliteral = (literal, ty) typed
   type tname = (int, ty) typed
   type imm = ImmVal of tname | ImmLit of tliteral
@@ -15,7 +15,7 @@ module AnfTypeAst : sig
   type anf_expr =
     | AApply of imm * imm
     | ATuple of imm list
-    | Aite of anf_body * anf_body * anf_body
+    | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
     | AClosure of imm * imm list

@@ -5,7 +5,7 @@ open Type_ast.InferTypeUtils
 open Type_ast.TypeAst
 open Counter.Counter
 open Pp.PrettyPrinter
-open Db.DbTypeAst
+open Indexed_ast.IndexedTypeAst
 open Closure.ClosureConvert
 open String
 module NameMap = Map.Make (String)
@@ -83,5 +83,5 @@ let () =
       match top_infer env p with
       | Error msg -> Printf.printf "%s" msg
       | Ok p ->
-          db_of_typed nm p |> cf_of_db globals |> print_cf_program false |> trim
-          |> print_endline)
+          index_of_typed nm p |> cf_of_index globals |> print_cf_program false
+          |> trim |> print_endline)

@@ -3,7 +3,7 @@
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
 module ClosureAst = struct
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
   open Parser_ast.ParserAst
   open Type_ast.TypeAst
 
@@ -25,7 +25,7 @@ module ClosureAst = struct
 
   type cf_typ_let_binding = {
     rec_f : rec_flag;
-    l_v : db_lvalue;
+    l_v : index_lvalue;
     cf_body : cf_typ_let_body;
   }
 
@@ -37,7 +37,7 @@ module ClosureAst = struct
   type cf_fun_let_binding = {
     is_rec : rec_flag;
     name : (int, ty) typed;
-    args : db_lvalue;
+    args : index_lvalue;
     b : cf_typ_let_body;
     env_vars : (int, ty) typed list;
   }
@@ -53,7 +53,7 @@ module ClosureConvert = struct
   open ClosureAst
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Db.DbTypeAst
+  open Indexed_ast.IndexedTypeAst
   open Counter.Counter
 
   module TypedName = struct
@@ -78,8 +78,8 @@ module ClosureConvert = struct
     | DLvValue v, ty -> typed ty v |> NameSet.singleton
     | _, ty -> typed ty (-1) |> NameSet.singleton
 
-  let rec collect_unbound_variables (f : db_fun_body) global_bindings =
-    let rec collect_variables_in_expr (e : db_expr) =
+  let rec collect_unbound_variables (f : index_fun_body) global_bindings =
+    let rec collect_variables_in_expr (e : index_expr) =
       match e.value with
       | DApply (left, right) ->
           let left = collect_variables_in_expr left in
@@ -98,7 +98,7 @@ module ClosureConvert = struct
       | DFun f -> collect_unbound_variables f global_bindings
     in
 
-    let rec collect_variables_in_let (l : db_let_binding) known =
+    let rec collect_variables_in_let (l : index_let_binding) known =
       let e = NameSet.empty in
       let u = NameSet.union in
       let d = NameSet.diff in
@@ -121,7 +121,7 @@ module ClosureConvert = struct
           (known, u iunknown expr_unknowns)
     in
 
-    let collect_variables_in_body (b : db_let_body) known =
+    let collect_variables_in_body (b : index_let_body) known =
       let e = NameSet.empty in
       let u = NameSet.union in
       let known, unknown =
@@ -139,7 +139,7 @@ module ClosureConvert = struct
     let known, unknown = collect_variables_in_body f.b known in
     NameSet.diff unknown known
 
-  let rec closure_free_expr globals r (e : db_expr) =
+  let rec closure_free_expr globals r (e : index_expr) =
     match e.value with
     | DApply (left, right) ->
         let left_decs, left = closure_free_expr globals r left in
@@ -185,7 +185,7 @@ module ClosureConvert = struct
         let f = CFClosure (genned, env) |> typed e.typ in
         (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
 
-  and cf_let (globals : NameSet.t) is_rec (l : db_let_binding) =
+  and cf_let (globals : NameSet.t) is_rec (l : index_let_binding) =
     let inner = List.map (cf_let globals is_rec) l.body.lets in
     let closures, cf_expr = closure_free_expr globals is_rec l.body.expr in
     let inner_cf_lets = List.map snd inner in
@@ -196,8 +196,8 @@ module ClosureConvert = struct
     let cf_let_binding = { rec_f; l_v; cf_body = cf_let_body } in
     (List.concat inner_closures @ closures, cf_let_binding)
 
-  and cf_of_db globals prog =
-    let rec inner g (p : db_program) acc =
+  and cf_of_index globals prog =
+    let rec inner g (p : index_program) acc =
       match p with
       | h :: t ->
           let closures, binding = cf_let g h.rec_f h in
