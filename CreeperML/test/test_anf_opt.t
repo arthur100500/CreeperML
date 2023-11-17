@@ -17,8 +17,6 @@
   > in
   > helper n 1
   > EOF
-  letc 7 (8) (9) [] = 
-    if ((v1 v8) 1) then v9 else ((v7 ((v2 v8) 1)) ((v3 v8) v9))
   
   letc 10 (6) [] = 
     let 7 =   
