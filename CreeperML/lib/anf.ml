@@ -13,19 +13,19 @@ module AnfTypeAst = struct
   type imm = ImmVal of tname | ImmLit of tliteral
 
   type anf_expr =
-    | AApply of imm * imm
+    | AApply of imm * imm list
     | ATuple of imm list
     | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
-    | AClosure of imm * imm list
+    | AClosure of tname * imm list
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
 
   type anf_fun_binding = {
     name : tname;
-    arg : tname;
+    args : tname list;
     body : anf_body;
     env_vars : tname list;
   }
@@ -58,12 +58,22 @@ module AnfConvert = struct
 
   let rec anf_of_expr (e : cf_typ_expr) : aer =
     match e.value with
-    | CFApply (left, right) ->
-        let left_bindings, left_imm = anf_of_expr left in
-        let right_bindings, right_imm = anf_of_expr right in
-        let self_tname = cnt_next () |> tname e.typ in
-        let self_binding = app left_imm right_imm |> binding self_tname in
-        (left_bindings @ right_bindings @ [ self_binding ], self_tname |> immv)
+    | CFApply (fn, args) ->
+        let rec apply_inner fn args =
+          match fn.value with
+          | CFApply (fn, old_args) -> apply_inner fn (old_args @ args)
+          | _ ->
+              let fn_bindings, fn_imm = anf_of_expr fn in
+              let arg_bindings, arg_imms =
+                List.map anf_of_expr args |> fun x ->
+                (List.map fst x, List.map snd x) |> fun (x, y) ->
+                (List.concat x, y)
+              in
+              let self_tname = cnt_next () |> tname e.typ in
+              let self_binding = app fn_imm arg_imms |> binding self_tname in
+              (fn_bindings @ arg_bindings @ [ self_binding ], self_tname |> immv)
+        in
+        apply_inner fn args
     | CFIfElse ite ->
         let i_bindings, if_imm = anf_of_expr ite.cond in
         let t_bindings, then_imm = anf_of_expr ite.t_body in
@@ -88,7 +98,7 @@ module AnfConvert = struct
         let env = List.map immv env in
         let self_tname = cnt_next () |> tname e.typ in
         let self_binding =
-          AClosure (c |> tname e.typ |> immv, env) |> binding self_tname
+          AClosure (c |> tname e.typ, env) |> binding self_tname
         in
         ([ self_binding ], self_tname |> immv)
 
@@ -123,14 +133,21 @@ module AnfConvert = struct
     in
     let bindings = List.fold_left inner [] l.b.cf_lets in
     let expr_bindings, res = anf_of_expr l.b.cf_expr in
-    let arg_name = cnt_next () |> tname l.args.typ in
-    let arg_imm = arg_name |> immv in
-    let arg_decs = lv_binds l.args arg_imm in
+    let inner2 a =
+      let arg_name = cnt_next () |> tname a.typ in
+      let arg_imm = arg_name |> immv in
+      let arg_decs = lv_binds a arg_imm in
+      (arg_decs, arg_name)
+    in
+    let arg_decs, arg_names =
+      List.map inner2 l.args |> fun x ->
+      (List.concat (List.map fst x), List.map snd x)
+    in
     let lets = arg_decs @ bindings @ expr_bindings in
     let body = { lets; res } in
     let env_vars = l.env_vars in
     let name = l.name in
-    { name; arg = arg_name; body; env_vars }
+    { name; args = arg_names; body; env_vars }
 
   let anf_of_cf (p : cf_typ_program) : anf_program =
     let inner xs = function
@@ -142,6 +159,8 @@ end
 
 module AnfOptimizations = struct
   open AnfTypeAst
+  open Counter.Counter
+  open Type_ast.TypeAst
 
   module DbName = struct
     type t = tname
@@ -154,6 +173,8 @@ module AnfOptimizations = struct
   type avbl = anf_val_binding list
   type nmm = tname NameMoveMap.t
 
+  let tname t name : tname = { typ = t; value = name }
+
   let try_rename (nmm : nmm) (n : tname) : tname =
     match NameMoveMap.find_opt n nmm with Some v -> v | None -> n
 
@@ -163,7 +184,9 @@ module AnfOptimizations = struct
   let rec apply_moves_to_expr (nmm : nmm) (e : anf_expr) : anf_expr =
     let rn_imm = apply_moves_to_imm nmm in
     match e with
-    | AApply (x, y) -> AApply (rn_imm x, rn_imm y)
+    | AApply (x, args) ->
+        let args = List.map rn_imm args in
+        AApply (rn_imm x, args)
     | ATuple xs -> ATuple (List.map rn_imm xs)
     | Aite (i, t, e) ->
         let i = rn_imm i in
@@ -176,7 +199,7 @@ module AnfOptimizations = struct
         Aite (i, t, e)
     | AImm i -> AImm (rn_imm i)
     | ATupleAccess (t, i) -> ATupleAccess (rn_imm t, i)
-    | AClosure (cl, env) -> AClosure (rn_imm cl, List.map rn_imm env)
+    | AClosure (cl, env) -> AClosure (try_rename nmm cl, List.map rn_imm env)
 
   and apply_moves_to_val (nmm : nmm) (b : anf_val_binding) =
     let nmm =
@@ -220,4 +243,48 @@ module AnfOptimizations = struct
     in
     let nmm = NameMoveMap.empty in
     List.fold_left inner ([], nmm) p |> fst
+
+  (* Closure inlining *)
+  (* if outer is returning allocated closure, we can inline inner *)
+
+  let rec inline_closures all_fns lvl (fn : anf_fun_binding) =
+    let find_fn name = List.find (fun x -> name.value = x.name.value) all_fns in
+    let outer = fn in
+    let last_op = List.rev outer.body.lets |> List.hd in
+    match last_op.e with
+    | AClosure (inner, args) when lvl > 0 ->
+        let inner = find_fn inner |> inline_closures all_fns (lvl - 1) in
+        let make_a_move left right = { name = left; e = AImm right } in
+        let lets =
+          outer.body.lets
+          @ List.map2 make_a_move inner.env_vars args
+          @ inner.body.lets
+        in
+        let res = inner.body.res in
+        {
+          name = cnt_next () |> tname outer.name.typ;
+          args = outer.args @ inner.args;
+          body = { lets; res };
+          env_vars = outer.env_vars;
+        }
+    | _ -> fn
+
+  (* module ApplyMergeMap = Map.Make (DbName)
+     type amm = (tname * imm list) ApplyMergeMap
+
+     let apply_merging_to_vals all_fns amm =
+       List.fold_left (fun xs, amm x ->
+         match x.e with
+         | AApply(ImmVal fn, args) ->
+           match ApplyMergeMap.find_opt fn with
+           | Some f ->
+             let new_fun = inline_closures all_fns 1 in
+             let amm = ApplyMergeMap.add x.name (f, args)
+           | None ->
+             let amm = ApplyMergeMap.add x.name (fn, args) in
+         )
+     (* Will remove some partial applications but will generate more functions and create unused vars *)
+     let optimize_apply_merging prog =
+       let filter_fn = function AnfFun f -> Some f | _ -> None in
+       let all_fns = prog |> List.filter_map filter_fn in*)
 end
