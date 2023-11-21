@@ -11,7 +11,6 @@ module ClosureAst = struct
     | CFApply of cf_typ_expr * cf_typ_expr list
     | CFLiteral of literal
     | CFValue of int
-    | CFClosure of int * (int, ty) typed list
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
 
@@ -39,7 +38,6 @@ module ClosureAst = struct
     name : (int, ty) typed;
     args : index_lvalue list;
     b : cf_typ_let_body;
-    env_vars : (int, ty) typed list;
   }
 
   type cf_binding =
@@ -173,7 +171,14 @@ module ClosureConvert = struct
         let res_typed = res |> typed e.typ in
         (i_decs @ t_decs @ e_decs, res_typed)
     | DFun f ->
-        (* collect fun x -> fun y -> to fun x y -> *)
+        let rec expr_of_lval l =
+          match (l.value, l.typ) with
+          | DLvValue v, _ -> CFValue v |> typed l.typ
+          | DLvTuple xs, TyTuple ts ->
+              let xts = List.map2 typed ts xs in
+              CFTuple (List.map expr_of_lval xts) |> typed l.typ
+          | _ -> CFLiteral LUnit |> typed l.typ
+        in
         let rec convert_fun f args =
           match (f.b.lets, f.b.expr.value) with
           | [], DFun f -> convert_fun f (args @ [ f.lvalue ])
@@ -190,19 +195,23 @@ module ClosureConvert = struct
               let inner_closures = List.map fst inner in
               let cf_body = { cf_lets = inner_cf_lets; cf_expr } in
               let env = NameSet.to_seq unknown_vars |> List.of_seq in
+              let env_lval =
+                List.map (fun v -> DLvValue v.value |> typed v.typ) env
+              in
               let fun_let =
                 {
                   is_rec = r;
                   name = typed e.typ cn;
-                  args;
+                  args = env_lval @ args;
                   b = cf_body;
-                  env_vars = env;
                 }
               in
-
+              let typ_cf_val = CFValue cn |> typed e.typ in
               let f =
-                (if env = [] then CFValue cn else CFClosure (cn, env))
-                |> typed e.typ
+                if env_lval = [] then typ_cf_val
+                else
+                  CFApply (typ_cf_val, List.map expr_of_lval env_lval)
+                  |> typed e.typ
               in
               (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
         in
@@ -237,8 +246,9 @@ module ClosureConvert = struct
           let closures, binding = cf_let g h.rec_f h in
           let closures = List.map (fun x -> FunBinding x) closures in
           let binding = ValBinding binding in
-          let u = NameSet.union in
-          let g = u (typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ)) g in
+          let _u = NameSet.union in
+          let _unused = typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ) in
+          let g = g in
           acc @ closures @ [ binding ] |> inner g t
       | [] -> acc
     in

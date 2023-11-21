@@ -11,7 +11,6 @@ module ClosureAst : sig
     | CFApply of cf_typ_expr * cf_typ_expr list
     | CFLiteral of literal
     | CFValue of int
-    | CFClosure of int * (int, ty) typed list
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
 
@@ -39,7 +38,6 @@ module ClosureAst : sig
     name : (int, ty) typed;
     args : index_lvalue list;
     b : cf_typ_let_body;
-    env_vars : (int, ty) typed list;
   }
 
   type cf_binding =

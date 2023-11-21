@@ -35,6 +35,7 @@
   >     a 
   >   in
   >   a
+  > EOF
   let 10 = 
     let 9 =   
       let 8 =     
@@ -56,6 +57,7 @@
   >   let b = a in
   >   let d = b in
   >   print_int (d + b)
+  > EOF
   let () = 
     let 6 =   
       33
@@ -87,6 +89,7 @@
   >   let h x = let j x = x - 2 in j (x + 1) in
   >   let x = h x in
   >   x + 2
+  > EOF
   let 15 = 
     fun (6) -> 
     let 8 =   
@@ -112,6 +115,7 @@
   > let f x = x + 1
   > let f x =
   >   f (x * 2)
+  > EOF
   let 7 = 
     fun (6) -> 
     ((v4 v6) 1)
@@ -123,6 +127,7 @@
   > let f x = x + 1
   > let rec f x =
   >   f (x * 2)
+  > EOF
   let 7 = 
     fun (6) -> 
     ((v4 v6) 1)
