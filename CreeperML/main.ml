@@ -72,11 +72,10 @@ let operators =
     @@ NameMap.find "print_int" nm;
   ]
 
-let input_program =
-  {|
-let rec fact n = if n <= 1 then 1 else n * (fact (n - 1))
+let input_program = {|
+let f (x, y) = x + y
 
-let res = fact 12
+let res = f (4, 5)
 |}
 
 let () =
@@ -86,6 +85,7 @@ let () =
   let apply_anf_convert p = Ok (anf_of_cf p) in
   let apply_anf_optimizations p = Ok (optimize_moves p) in
   let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
+  (* let apply_asm p = Ok (Asm.Asm.asm_of_anf p) in *)
   let apply_parser = from_string in
   if true then
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
