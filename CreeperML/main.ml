@@ -2,9 +2,9 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-open Result
 open CreeperML
 open Infer.Infer
+open Monad.Result
 open Parser_interface.ParserInterface
 open Type_ast.TypeAst
 open Type_ast.InferTypeUtils
@@ -73,9 +73,7 @@ let operators =
   ]
 
 let input_program = {|
-let f (x, y) = x + y
-
-let res = f (4, 5)
+let foo a = 1 + a
 |}
 
 let () =
@@ -91,7 +89,11 @@ let () =
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
     >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
     |> function
-    | Ok x -> print_anf_program false x |> print_endline
+    | Ok x -> (
+        print_anf_program true x |> print_endline;
+        monadic_map x Codegen.codegen_anf_binding |> function
+        | Ok _ -> Llvm.dump_module Codegen.the_module
+        | Error err -> print_endline err)
     | Error x -> print_endline x
   else
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
