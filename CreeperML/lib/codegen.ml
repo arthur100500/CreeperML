@@ -13,6 +13,7 @@ let contex = global_context ()
 let the_module = create_module contex "main"
 let builder = builder contex
 let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 42
+let function_types : (string, lltype) Hashtbl.t = Hashtbl.create 42
 let float_type = float_type contex
 let bool_type = i1_type contex
 let integer_type = i32_type contex
@@ -27,11 +28,10 @@ let codegen_imm = function
       | LString str -> const_string contex str |> return
       | LUnit -> error "unit llvm")
   | ImmVal t -> (
-      try typed_value t |> string_of_int |> Hashtbl.find named_values |> return
+      let name = typed_value t |> string_of_int in
+      try Hashtbl.find named_values name |> return
       with Not_found ->
-        typed_value t
-        |> Printf.sprintf "Can't find function at number %d"
-        |> error)
+        Printf.sprintf "Can't find function/value at number %s" name |> error)
 
 let codegen_sig name args =
   let rec get_type = function
@@ -51,19 +51,22 @@ let codegen_sig name args =
     | _ -> error "never happen i guess // or no poly"
     (* TODO make tuples function etc *)
   in
+  let rec rec_type = function TyArrow (_, rez) -> rec_type rez | t -> t in
+  let n = typed_value name |> string_of_int in
   let* ts = monadic_map args (fun e -> typ e |> get_type) >>| Array.of_list in
-  let* ft = typ name |> get_type >>| fun ft -> function_type ft ts in
+  let* ft =
+    typ name |> rec_type |> get_type >>| fun ft -> function_type ft ts
+  in
   let* f =
-    match lookup_function (typed_value name |> string_of_int) the_module with
-    | None ->
-        declare_function (typed_value name |> string_of_int) ft the_module
-        |> return
+    match lookup_function n the_module with
+    | None -> declare_function n ft the_module |> return
     | Some f ->
         if block_begin f <> At_end f then error "redefinition of function"
         else if element_type (type_of f) <> ft then
           error "redefinition of function"
         else return f
   in
+  Hashtbl.add function_types n ft;
   Array.iteri
     (fun i e ->
       let n = List.nth args i |> typed_value |> string_of_int in
@@ -93,15 +96,18 @@ let rec codegen_expr = function
           let params = params f in
           if List.length args == Array.length params then
             let* args = monadic_map args codegen_imm >>| Array.of_list in
-            build_call (type_of f) f args "calltmp" builder |> return
+            build_call
+              (Hashtbl.find function_types name)
+              f args "calltmp" builder
+            |> return
           else error "Count of args and arrnost' of function are not same"
       | None -> codegen_predef name args)
   | Aite (cond, tr, fl) ->
-      let { lets; res = tr } = tr in
-      let* _ = monadic_map lets codegen_anf_val_binding in
-      let { lets; res = fl } = fl in
-      let* _ = monadic_map lets codegen_anf_val_binding in
       (* TODO check lets gen *)
+      let { lets; res = tr } = tr in
+      let* _ = monadic_map lets codegen_local_var in
+      let { lets; res = fl } = fl in
+      let* _ = monadic_map lets codegen_local_var in
       let* cond = codegen_imm cond in
       let zero = const_int bool_type 0 in
       let cond_val = build_icmp Icmp.Ne cond zero "ifcond" builder in
@@ -139,27 +145,47 @@ let rec codegen_expr = function
       build_struct_gep (type_of str) str ix "tmpaccess" builder
       |> return (* TODO check this bullshit *)
 
-and codegen_anf_val_binding { name; e } =
-  let* f = codegen_sig name [] in
-  let bb = append_block contex "entry" f in
-  position_at_end bb builder;
-  try
-    let* ret_val = codegen_expr e in
-    Hashtbl.add named_values (typed_value name |> string_of_int) ret_val;
-    let _ = build_ret ret_val builder in
-    return f
-  with _ ->
-    delete_function f;
-    error "value binding error"
+(* and codegen_anf_val_binding { name; e } =
+   let* f = codegen_sig name [] in
+   let bb = append_block contex "entry" f in
+   position_at_end bb builder;
+   try
+     let* ret_val = codegen_expr e in
+     Hashtbl.add named_values (typed_value name |> string_of_int) ret_val;
+     let _ = build_ret ret_val builder in
+     return f
+   with _ ->
+     delete_function f;
+     error "value binding error" *)
+
+and codegen_local_var { name; e } =
+  let name = typed_value name |> string_of_int in
+  let* body = codegen_expr e in
+  let alloca = build_alloca (type_of body) name builder in
+  let _ = build_store body alloca builder in
+  let r = build_load (type_of body) alloca name builder in
+  Hashtbl.add named_values name r (* alloca ptr to value *);
+  return r
 
 let rec codegen_anf_binding = function
-  | AnfVal bind -> codegen_anf_val_binding bind
-  | AnfFun { name; args; body = { lets; res = body } } -> (
-      let* f = codegen_sig name args in
-      (* need to put lets into f block *)
-      let* _ = monadic_map lets codegen_anf_val_binding in
+  | AnfVal { name; e } -> (
+      (* mb need call or something in expressions *)
+      let* f = codegen_sig name [] in
       let bb = append_block contex "entry" f in
       position_at_end bb builder;
+      try
+        let* ret_val = codegen_expr e in
+        let _ = build_ret ret_val builder in
+        Hashtbl.add named_values (typed_value name |> string_of_int) ret_val;
+        return f
+      with e ->
+        delete_function f;
+        Printexc.to_string e |> error)
+  | AnfFun { name; args; body = { lets; res = body } } -> (
+      let* f = codegen_sig name args in
+      let bb = append_block contex "entry" f in
+      position_at_end bb builder;
+      let* _ = monadic_map (List.rev lets) codegen_local_var in
       try
         let* ret_val = codegen_imm body in
         let _ = build_ret ret_val builder in
