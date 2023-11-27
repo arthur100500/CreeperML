@@ -101,6 +101,7 @@ module AnfConvert = struct
         let zipped = List.map2 (fun x y -> (x, y)) lvalues typs in
         let decs = List.mapi inner zipped in
         List.concat decs
+    | DLvUnit, _ -> [ binding (tname lv.typ (cnt_next ())) (imm er) ]
     | _, _ -> []
 
   let rec anf_of_let_binding (l : cf_typ_let_binding) : anf_val_binding list =

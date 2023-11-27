@@ -144,6 +144,24 @@ module ClosureConvert = struct
     let known, unknown = collect_variables_in_body f.b known in
     NameSet.diff unknown known
 
+  let remove_redefinitons p =
+    let rec filter_vb (vb : cf_typ_let_binding) =
+      match (vb.l_v.value, vb.cf_body.cf_expr.value, vb.cf_body.cf_lets) with
+      | DLvValue v, CFValue n, [] when v = n -> None
+      | _ ->
+          let new_lets = List.filter_map filter_vb vb.cf_body.cf_lets in
+          Some { vb with cf_body = { vb.cf_body with cf_lets = new_lets } }
+    in
+    let rec filter_fb (fb : cf_fun_let_binding) =
+      let new_lets = List.filter_map filter_vb fb.b.cf_lets in
+      { fb with b = { fb.b with cf_lets = new_lets } }
+    in
+    let filter_prog = function
+      | ValBinding vb -> filter_vb vb |> Option.map (fun x -> ValBinding x)
+      | FunBinding fb -> Some (FunBinding (filter_fb fb))
+    in
+    List.filter_map filter_prog p
+
   let rec closure_free_expr globals r cn (e : index_expr) =
     let cf_expr = closure_free_expr globals r (cnt_next ()) in
     match e.value with
@@ -226,18 +244,33 @@ module ClosureConvert = struct
       if to_bool is_rec then NameSet.union globals (typ_names_of_lvalue l.l_v)
       else globals
     in
-    let inner = List.map (cf_let globals is_rec) l.body.lets in
     let let_name = fst_typ_name_of_lvalue l.l_v in
     let closures, cf_expr =
       closure_free_expr globals is_rec let_name.value l.body.expr
     in
-    let inner_cf_lets = List.map snd inner in
-    let inner_closures = List.map fst inner in
+    let _, inner_closures, rev_binds =
+      List.fold_left
+        (fun (g, fns, bnds) x ->
+          let funs, bind = cf_let g is_rec x in
+          let is_fun (b : cf_typ_let_binding) =
+            match
+              List.find_opt (fun x -> DLvValue x.name.value = b.l_v.value) funs
+            with
+            | Some _ -> true
+            | _ -> false
+          in
+          ( (if is_fun bind then NameSet.union g (typ_names_of_lvalue bind.l_v)
+             else g),
+            fns @ funs,
+            bind :: bnds ))
+        (globals, [], []) l.body.lets
+    in
+    let inner_cf_lets = rev_binds |> List.rev in
     let cf_let_body : cf_typ_let_body = { cf_lets = inner_cf_lets; cf_expr } in
     let rec_f = l.rec_f in
     let l_v = l.l_v in
     let cf_let_binding = { rec_f; l_v; cf_body = cf_let_body } in
-    (List.concat inner_closures @ closures, cf_let_binding)
+    (inner_closures @ closures, cf_let_binding)
 
   and cf_of_index globals prog =
     let rec inner g (p : index_program) acc =
@@ -246,12 +279,11 @@ module ClosureConvert = struct
           let closures, binding = cf_let g h.rec_f h in
           let closures = List.map (fun x -> FunBinding x) closures in
           let binding = ValBinding binding in
-          let _u = NameSet.union in
-          let _unused = typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ) in
-          let g = g in
+          let u = NameSet.union in
+          let g = typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ) |> u g in
           acc @ closures @ [ binding ] |> inner g t
       | [] -> acc
     in
     let set = NameSet.of_list globals in
-    inner set prog []
+    inner set prog [] |> remove_redefinitons
 end
