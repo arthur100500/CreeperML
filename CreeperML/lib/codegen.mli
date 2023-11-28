@@ -2,7 +2,7 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-val the_module : Llvm.llmodule
-
-val codegen_anf_binding :
-  Anf.AnfTypeAst.anf_binding -> Llvm.llvalue Monad.Result.t
+module Codegen : sig
+  val top_lvl : Anf.AnfTypeAst.anf_binding list -> unit Monad.Result.t
+  val dmp_code : string -> unit
+end

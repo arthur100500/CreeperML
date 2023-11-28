@@ -4,7 +4,6 @@
 
 open CreeperML
 open Infer.Infer
-open Monad.Result
 open Parser_interface.ParserInterface
 open Type_ast.TypeAst
 open Type_ast.InferTypeUtils
@@ -72,8 +71,18 @@ let operators =
     @@ NameMap.find "print_int" nm;
   ]
 
-let input_program = {|
-let foo a = 1 + a
+let input_program =
+  {|
+  let fac n =
+    let rec helper n acc =
+      if n <= 1 then 
+        acc
+      else
+        helper (n - 1) (n * acc)
+    in
+  helper n 1
+
+  let f a = print_int (fac 5)
 |}
 
 let () =
@@ -91,8 +100,8 @@ let () =
     |> function
     | Ok x -> (
         print_anf_program true x |> print_endline;
-        monadic_map x Codegen.codegen_anf_binding |> function
-        | Ok _ -> Llvm.dump_module Codegen.the_module
+        Codegen.Codegen.top_lvl x |> function
+        | Ok _ -> Codegen.Codegen.dmp_code "toy.ll"
         | Error err -> print_endline err)
     | Error x -> print_endline x
   else
