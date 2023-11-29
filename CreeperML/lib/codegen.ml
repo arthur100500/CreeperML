@@ -15,7 +15,7 @@ module Codegen = struct
     | Val of llvalue
 
   let contex = global_context ()
-  let the_module = create_module contex "main"
+  let the_module = create_module contex "CreeperMLBestLenguage"
   let builder = builder contex
   let named_values : (string, funvar) Hashtbl.t = Hashtbl.create 42
   let function_types : (string, lltype) Hashtbl.t = Hashtbl.create 42
@@ -24,6 +24,18 @@ module Codegen = struct
   let integer_type = i32_type contex
   let string_type = array_type (i8_type contex) 1
   let unit_type = void_type contex
+  let int_const = const_int integer_type
+  let str_name n = typed_value n |> string_of_int
+
+  let try_find name msg =
+    try
+      Hashtbl.find named_values name |> function
+      | Func (bind, binder) ->
+          binder bind |> fun r ->
+          Hashtbl.remove named_values name;
+          r
+      | Val l -> return l
+    with Not_found -> error msg
 
   let rec get_type = function
     | TyGround gr -> (
@@ -43,27 +55,19 @@ module Codegen = struct
         function_type (get_type r) (List.map get_type args |> Array.of_list)
     | _ -> pointer_type contex
 
-  let malloc name t = build_malloc (get_type t) name builder
-
   let codegen_imm = function
-    | ImmLit t -> (
-        match typed_value t with
-        | LInt n -> const_int integer_type n |> return
-        | LFloat n -> const_float float_type n |> return
-        | LBool b -> const_int bool_type (if b then 1 else 0) |> return
-        | LString str -> const_string contex str |> return
-        | LUnit -> const_pointer_null unit_type |> return)
-    | ImmVal t -> (
-        let name = typed_value t |> string_of_int in
-        try
-          Hashtbl.find named_values name |> function
-          | Func (bind, binder) ->
-              binder bind |> fun r ->
-              Hashtbl.remove named_values name;
-              r
-          | Val l -> return l
-        with Not_found ->
-          Printf.sprintf "Can't find function/value at number %s" name |> error)
+    | ImmLit t ->
+        (match typed_value t with
+        | LInt n -> const_int integer_type n
+        | LFloat n -> const_float float_type n
+        | LBool b -> const_int bool_type (if b then 1 else 0)
+        | LString str -> const_string contex str
+        | LUnit -> const_pointer_null unit_type)
+        |> return
+    | ImmVal t ->
+        let name = str_name t in
+        try_find name
+          (Printf.sprintf "Can't find function/value at number %s" name)
 
   let codegen_sig { value = name; typ } args =
     let name = Printf.sprintf "f%d" name in
@@ -81,7 +85,7 @@ module Codegen = struct
     if List.length args > 0 then
       Array.iteri
         (fun i e ->
-          let n = List.nth args i |> typed_value |> string_of_int in
+          let n = List.nth args i |> str_name in
           set_value_name n e;
           Hashtbl.add named_values n (Val e))
         (params f)
@@ -125,21 +129,31 @@ module Codegen = struct
   let rec codegen_expr = function
     | AImm imm -> codegen_imm imm
     | ATuple ims ->
-        monadic_map ims codegen_imm >>| Array.of_list >>| const_struct contex
-    | AApply (ImmLit _, _) -> error "Why we have this situation? Never happen"
+        let* es = monadic_map ims codegen_imm >>| Array.of_list in
+        let t = Array.map type_of es |> struct_type contex in
+        let addr = build_malloc t "tuplemalloc" builder in
+        let alloc i e =
+          let addr =
+            build_gep t addr [| int_const 0; int_const i |] "elem" builder
+          in
+          ignore (build_store e addr builder)
+        in
+        Array.iteri alloc es;
+        return addr
     | AApply (ImmVal f, args) -> (
         let rez_t, callname =
           typ f |> rez_t |> fun t ->
-          match t with
-          | TyGround TUnit -> (get_type t, "")
-          | _ -> (get_type t, "calltmp")
+          (match t with TyGround TUnit -> "" | _ -> "calltmp") |> fun name ->
+          (get_type t, name)
         in
         let name = typed_value f |> Printf.sprintf "f%d" in
         match lookup_function name the_module with
         | None -> codegen_predef name args
         | Some f ->
             let params = params f in
-            if List.length args == Array.length params then
+            if List.length args != Array.length params then
+              error "Count of args and arrnost' of function are not same"
+            else
               let args =
                 List.map2
                   (fun a p ->
@@ -147,7 +161,7 @@ module Codegen = struct
                     | TypeKind.Pointer ->
                         codegen_imm a >>| fun a ->
                         let addr = build_alloca (type_of a) "polytmp" builder in
-                        let _ = build_store a addr builder in
+                        ignore (build_store a addr builder);
                         addr
                     | _ -> codegen_imm a)
                   args (Array.to_list params)
@@ -161,13 +175,15 @@ module Codegen = struct
                   args (return [])
                 >>| Array.of_list
               in
-              let fun_t = Hashtbl.find function_types name in
+              let* fun_t =
+                try Hashtbl.find function_types name |> return
+                with _ -> Printf.sprintf "can't find type of %s" name |> error
+              in
               let rz = build_call fun_t f args callname builder in
-              match return_type fun_t |> classify_type with
-              | TypeKind.Pointer ->
-                  build_load rez_t rz "polyrez" builder |> return
-              | _ -> return rz
-            else error "Count of args and arrnost' of function are not same")
+              (match return_type fun_t |> classify_type with
+              | TypeKind.Pointer -> build_load rez_t rz "polyrez" builder
+              | _ -> rz)
+              |> return)
     | Aite (cond, { lets = then_lets; res = tr }, { lets = else_lets; res = fl })
       ->
         let curr_block = insertion_block builder in
@@ -177,21 +193,21 @@ module Codegen = struct
         let else_block = append_block contex "else" fun_block in
         let merge_block = append_block contex "merge" fun_block in
 
-        let _ = build_br test_block builder in
+        ignore (build_br test_block builder);
         position_at_end test_block builder;
         let* cond = codegen_imm cond in
-        let cond_val =
-          build_icmp Icmp.Eq cond (const_int integer_type 0) "cond" builder
-        in
-        let _ = build_cond_br cond_val else_block then_block builder in
+        let cond_val = build_icmp Icmp.Eq cond (int_const 0) "cond" builder in
+        ignore (build_cond_br cond_val else_block then_block builder);
 
         position_at_end then_block builder;
-        let* _ = monadic_map (List.rev then_lets) codegen_local_var in
+        monadic_map (List.rev then_lets) codegen_local_var
+        *>
         let* then_val = codegen_imm tr in
         let new_then_block = insertion_block builder in
 
         position_at_end else_block builder;
-        let* _ = monadic_map (List.rev else_lets) codegen_local_var in
+        monadic_map (List.rev else_lets) codegen_local_var
+        *>
         let* else_val = codegen_imm fl in
         let new_else_block = insertion_block builder in
 
@@ -201,37 +217,32 @@ module Codegen = struct
           |> build_alloca (type_of else_val) "ifrezptr"
         in
         position_at_end new_then_block builder;
-        let _ = build_store then_val addr builder in
-        let _ = build_br merge_block builder in
+        ignore (build_store then_val addr builder);
+        ignore (build_br merge_block builder);
 
         position_at_end new_else_block builder;
-        let _ = build_store else_val addr builder in
-        let _ = build_br merge_block builder in
+        ignore (build_store else_val addr builder);
+        ignore (build_br merge_block builder);
 
         position_at_end merge_block builder;
         build_load (type_of else_val) addr "ifrez" builder |> return
-    | ATupleAccess (ImmLit _, _) -> error "Never happen i guess"
     | ATupleAccess (ImmVal name, ix) ->
-        let* str =
-          try
-            typed_value name |> string_of_int |> Hashtbl.find named_values
-            |> function
-            | Func (bind, binder) ->
-                binder bind |> fun r ->
-                Hashtbl.remove named_values (typed_value name |> string_of_int);
-                r
-            | Val v -> return v
-          with Not_found ->
-            typed_value name |> Printf.sprintf "Can't find tuple %d" |> error
+        let n = str_name name in
+        let* str = try_find n "Can't find tuple" in
+        let t = typ name |> get_type in
+        let addr =
+          build_gep t str [| int_const 0; int_const ix |] "access" builder
         in
-        build_struct_gep (type_of str) str ix "tmpaccess" builder |> return
+        build_load (Array.get (subtypes t) ix) addr "loadaccesss" builder
+        |> return
+    | _ -> error "never happen"
 
   and codegen_local_var { name; e } =
-    let name = typed_value name |> string_of_int in
+    let name = str_name name in
     let* body = codegen_expr e in
-    let alloca = build_alloca (type_of body) name builder in
-    let _ = build_store body alloca builder in
-    let r = build_load (type_of body) alloca (String.cat "_" name) builder in
+    let alloca = build_alloca (type_of body) (String.cat name "a") builder in
+    ignore (build_store body alloca builder);
+    let r = build_load (type_of body) alloca (String.cat name "l") builder in
     Hashtbl.add named_values name (Val r);
     return r
 
@@ -240,28 +251,28 @@ module Codegen = struct
         match typ name with
         | TyGround TUnit ->
             position_at_end main builder;
-            codegen_expr e >>= fun _ -> return ()
+            codegen_expr e *> return ()
         | _ ->
-            Hashtbl.add named_values
-              (typed_value name |> string_of_int)
+            Hashtbl.add named_values (str_name name)
               (Func (bind, codegen_local_var));
             return ())
     | AnfFun { name; args; body = { lets; res = body } } -> (
         let* f = codegen_sig name args in
         let bb = append_block contex "entry" f in
         position_at_end bb builder;
-        let* _ = monadic_map (List.rev lets) codegen_local_var in
+        monadic_map (List.rev lets) codegen_local_var
+        *>
         try
           let* ret_val = codegen_imm body in
-          let _ = build_ret ret_val builder in
+          ignore (build_ret ret_val builder);
           return ()
         with _ ->
           delete_function f;
-          error "funciton binding error")
+          error "Funciton binding error")
 
   let codegen_ret_main b =
     position_at_end b builder;
-    build_ret (const_int integer_type 0) builder
+    build_ret (int_const 0) builder
 
   let codegen_main =
     let dec = function_type integer_type [||] in
@@ -269,7 +280,8 @@ module Codegen = struct
 
   let top_lvl code =
     let b = codegen_main in
-    let* _ = monadic_map (List.rev code) (codegen_anf_binding b) in
+    monadic_map (List.rev code) (codegen_anf_binding b)
+    *>
     let _ = codegen_ret_main b in
     return ()
 
