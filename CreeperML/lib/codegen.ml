@@ -22,7 +22,7 @@ module Codegen = struct
   let float_type = float_type contex
   let bool_type = i32_type contex
   let integer_type = i32_type contex
-  let string_type = array_type (i8_type contex) 1 (* TODO ?*)
+  let string_type = array_type (i8_type contex) 1
   let unit_type = void_type contex
 
   let rec get_type = function
@@ -41,7 +41,7 @@ module Codegen = struct
         in
         let args, r = args arr in
         function_type (get_type r) (List.map get_type args |> Array.of_list)
-    | _ -> pointer_type contex (* poly type*)
+    | _ -> pointer_type contex
 
   let malloc name t = build_malloc (get_type t) name builder
 
@@ -116,8 +116,8 @@ module Codegen = struct
         let* arg = List.hd args |> codegen_imm in
         build_call
           (function_type (void_type contex) [| integer_type |])
-          f [| arg |] "calltmp" builder
-        |> return
+          f [| arg |] "" builder
+        |> return (* TODO perenesti iz predefa *)
     | _ -> error "fail predef"
 
   let rec rez_t = function TyArrow (_, rez) -> rez_t rez | t -> t
@@ -125,12 +125,15 @@ module Codegen = struct
   let rec codegen_expr = function
     | AImm imm -> codegen_imm imm
     | ATuple ims ->
-        monadic_map ims codegen_imm
-        >>| Array.of_list
-        >>| const_struct contex (* mb do as codegentwo *)
+        monadic_map ims codegen_imm >>| Array.of_list >>| const_struct contex
     | AApply (ImmLit _, _) -> error "Why we have this situation? Never happen"
     | AApply (ImmVal f, args) -> (
-        let rez_t = typ f |> rez_t |> get_type in
+        let rez_t, callname =
+          typ f |> rez_t |> fun t ->
+          match t with
+          | TyGround TUnit -> (get_type t, "")
+          | _ -> (get_type t, "calltmp")
+        in
         let name = typed_value f |> Printf.sprintf "f%d" in
         match lookup_function name the_module with
         | None -> codegen_predef name args
@@ -159,7 +162,7 @@ module Codegen = struct
                 >>| Array.of_list
               in
               let fun_t = Hashtbl.find function_types name in
-              let rz = build_call fun_t f args "calltmp" builder in
+              let rz = build_call fun_t f args callname builder in
               match return_type fun_t |> classify_type with
               | TypeKind.Pointer ->
                   build_load rez_t rz "polyrez" builder |> return
