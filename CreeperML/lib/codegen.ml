@@ -200,14 +200,12 @@ module Codegen = struct
         ignore (build_cond_br cond_val else_block then_block builder);
 
         position_at_end then_block builder;
-        monadic_map (List.rev then_lets) codegen_local_var
-        *>
+        let* _ = monadic_map (List.rev then_lets) codegen_local_var in
         let* then_val = codegen_imm tr in
         let new_then_block = insertion_block builder in
 
         position_at_end else_block builder;
-        monadic_map (List.rev else_lets) codegen_local_var
-        *>
+        let* _ = monadic_map (List.rev else_lets) codegen_local_var in
         let* else_val = codegen_imm fl in
         let new_else_block = insertion_block builder in
 
@@ -251,7 +249,8 @@ module Codegen = struct
         match typ name with
         | TyGround TUnit ->
             position_at_end main builder;
-            codegen_expr e *> return ()
+            let* _ = codegen_expr e in
+            return ()
         | _ ->
             Hashtbl.add named_values (str_name name)
               (Func (bind, codegen_local_var));
@@ -260,8 +259,7 @@ module Codegen = struct
         let* f = codegen_sig name args in
         let bb = append_block contex "entry" f in
         position_at_end bb builder;
-        monadic_map (List.rev lets) codegen_local_var
-        *>
+        let* _ = monadic_map (List.rev lets) codegen_local_var in
         try
           let* ret_val = codegen_imm body in
           ignore (build_ret ret_val builder);
@@ -280,10 +278,29 @@ module Codegen = struct
 
   let top_lvl code =
     let b = codegen_main in
-    monadic_map (List.rev code) (codegen_anf_binding b)
-    *>
+    let* _ = monadic_map (List.rev code) (codegen_anf_binding b) in
     let _ = codegen_ret_main b in
     return ()
 
   let dmp_code file = print_module file the_module
+
+  let compile code name =
+    let output_ll = Printf.sprintf "%s.ll" name in
+    let output_opt_ll = Printf.sprintf "%s-opt.ll" name in
+    let output_opt_s = Printf.sprintf "%s-opt.s" name in
+    ignore
+      (match top_lvl code with
+      | Error err -> print_endline err
+      | _ -> dmp_code output_ll);
+    let _ =
+      Printf.sprintf "opt -f -S %s -o %s -Oz" output_ll output_opt_ll
+      |> Sys.command
+    in
+    let _ = Printf.sprintf "llc %s" output_opt_ll |> Sys.command in
+    let _ =
+      Printf.sprintf "gcc %s lib/bindings.c -o %s" output_opt_s name
+      |> Sys.command
+    in
+    let _ = Printf.sprintf "./%s" name |> Sys.command in
+    ()
 end
