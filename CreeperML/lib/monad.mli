@@ -11,4 +11,5 @@ module Result : sig
   val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
   val ( *> ) : 'a t -> 'b t -> 'b t
   val ( >>| ) : 'a t -> ('a -> 'b) -> 'b t
+  val monadic_map : 'a list -> ('a -> 'b t) -> 'b list t
 end

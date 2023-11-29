@@ -15,4 +15,11 @@ module Result = struct
 
   let ( >>| ) : 'a t -> ('a -> 'b) -> 'b t =
    fun x f -> match x with Ok x -> Ok (f x) | Error msg -> error msg
+
+  let monadic_map l f =
+    List.fold_right
+      (fun e acc ->
+        let* acc = acc in
+        f e >>| fun e -> e :: acc)
+      l (return [])
 end
