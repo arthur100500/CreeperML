@@ -61,8 +61,26 @@ module Codegen = struct
         | LInt n -> const_int integer_type n
         | LFloat n -> const_float float_type n
         | LBool b -> const_int bool_type (if b then 1 else 0)
-        | LString str -> const_string contex str
-        | LUnit -> const_pointer_null unit_type)
+        | LUnit -> const_pointer_null unit_type
+        | LString str ->
+            let l = String.length str in
+            let len = const_int integer_type l in
+            let str = const_string contex str in
+            let t =
+              [| integer_type; array_type integer_type l |]
+              |> struct_type contex
+            in
+            let addr = build_malloc t "strdef" builder in
+
+            ignore
+              (build_gep t addr [| int_const 0; int_const 0 |] "len" builder);
+            ignore (build_store len addr builder);
+
+            ignore
+              (build_gep t addr [| int_const 0; int_const 1 |] "data" builder);
+            ignore (build_store str addr builder);
+
+            addr)
         |> return
     | ImmVal t ->
         let name = str_name t in
@@ -112,16 +130,15 @@ module Codegen = struct
         let* rhs = List.nth args 1 |> codegen_imm in
         build_add lhs rhs "addtmp" builder |> return
     | "f5" ->
-        let f =
-          declare_function "print_int"
-            (function_type (void_type contex) [| integer_type |])
-            the_module
-        in
+        let ft = function_type unit_type [| integer_type |] in
+        let f = declare_function "print_int" ft the_module in
         let* arg = List.hd args |> codegen_imm in
-        build_call
-          (function_type (void_type contex) [| integer_type |])
-          f [| arg |] "" builder
-        |> return (* TODO perenesti iz predefa *)
+        build_call ft f [| arg |] "" builder |> return
+    | "f6" ->
+        let ft = function_type unit_type [| pointer_type contex |] in
+        let f = declare_function "print_string" ft the_module in
+        let* arg = List.hd args |> codegen_imm in
+        build_call ft f [| arg |] "" builder |> return
     | _ -> error "fail predef"
 
   let rec rez_t = function TyArrow (_, rez) -> rez_t rez | t -> t
@@ -302,5 +319,9 @@ module Codegen = struct
       |> Sys.command
     in
     let _ = Printf.sprintf "./%s" name |> Sys.command in
+    let _ =
+      Printf.sprintf "rm %s %s %s %s" name output_ll output_opt_ll output_opt_s
+      |> Sys.command
+    in
     ()
 end
