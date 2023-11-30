@@ -12,7 +12,7 @@ open Monad.Result
 module Codegen = struct
   type funvar =
     | Func of anf_val_binding * (anf_val_binding -> llvalue t)
-    | Val of llvalue
+    | Val of llvalue  (** add carry *)
 
   let contex = global_context ()
   let the_module = create_module contex "CreeperMLBestLenguage"
@@ -64,23 +64,11 @@ module Codegen = struct
         | LUnit -> const_pointer_null unit_type
         | LString str ->
             let l = String.length str in
-            let len = const_int integer_type l in
-            let str = const_string contex str in
-            let t =
-              [| integer_type; array_type integer_type l |]
-              |> struct_type contex
+            let str =
+              String.mapi (fun i c -> if i = 0 || i = l - 1 then ' ' else c) str
+              |> String.trim
             in
-            let addr = build_malloc t "strdef" builder in
-
-            ignore
-              (build_gep t addr [| int_const 0; int_const 0 |] "len" builder);
-            ignore (build_store len addr builder);
-
-            ignore
-              (build_gep t addr [| int_const 0; int_const 1 |] "data" builder);
-            ignore (build_store str addr builder);
-
-            addr)
+            build_global_stringptr str "" builder)
         |> return
     | ImmVal t ->
         let name = str_name t in
@@ -151,7 +139,7 @@ module Codegen = struct
         let f = declare_function "print_string" ft the_module in
         let* arg = List.hd args |> codegen_imm in
         build_call ft f [| arg |] "" builder |> return
-    | _ -> error "fail predef"
+    | name -> Printf.sprintf "fail predef ar %s" name |> error
 
   let rec rez_t = function TyArrow (_, rez) -> rez_t rez | t -> t
 
@@ -325,7 +313,10 @@ module Codegen = struct
       Printf.sprintf "opt -f -S %s -o %s -Oz" output_ll output_opt_ll
       |> Sys.command
     in
-    let _ = Printf.sprintf "llc %s" output_opt_ll |> Sys.command in
+    let _ =
+      Printf.sprintf "llc --relocation-model=pic %s" output_opt_ll
+      |> Sys.command
+    in
     let _ =
       Printf.sprintf "gcc %s lib/bindings.c -o %s" output_opt_s name
       |> Sys.command
