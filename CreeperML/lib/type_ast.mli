@@ -69,6 +69,7 @@ module InferTypeUtils : sig
   val t_string : ground_typ
   val t_bool : ground_typ
   val t_unit : ground_typ
+  val t_float : ground_typ
   val t_arrow : typ -> typ -> ty
   val t_tuple : typ list -> ty
   val t_ground : ground_typ -> ty
