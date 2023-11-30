@@ -111,30 +111,42 @@ module Codegen = struct
     return f
 
   let codegen_predef name args =
+    let op f args =
+      let* lhs = List.hd args |> codegen_imm in
+      let* rhs = List.nth args 1 |> codegen_imm in
+      f lhs rhs "op" builder |> return
+    in
+    let bin_op f args =
+      let* lhs = List.hd args |> codegen_imm in
+      let* rhs = List.nth args 1 |> codegen_imm in
+      let i = f lhs rhs "cmptmp" builder in
+      build_zext i integer_type "booltmp" builder |> return
+    in
     match name with
-    | "f1" (* <= *) ->
-        let* lhs = List.hd args |> codegen_imm in
-        let* rhs = List.nth args 1 |> codegen_imm in
-        let i = build_icmp Icmp.Sle lhs rhs "cmptmp" builder in
-        build_zext i integer_type "booltmp" builder |> return
-    | "f2" (* - *) ->
-        let* lhs = List.hd args |> codegen_imm in
-        let* rhs = List.nth args 1 |> codegen_imm in
-        build_sub lhs rhs "subtmp" builder |> return
-    | "f3" (* * *) ->
-        let* lhs = List.hd args |> codegen_imm in
-        let* rhs = List.nth args 1 |> codegen_imm in
-        build_mul lhs rhs "multmp" builder |> return
-    | "f4" (* + *) ->
-        let* lhs = List.hd args |> codegen_imm in
-        let* rhs = List.nth args 1 |> codegen_imm in
-        build_add lhs rhs "addtmp" builder |> return
-    | "f5" ->
+    | "f1" (* - *) -> op build_sub args
+    | "f2" (* + *) -> op build_add args
+    | "f3" (* * *) -> op build_mul args
+    | "f4" (* / *) -> op build_sdiv args
+    | "f5" (* <= *) -> bin_op (build_icmp Icmp.Sle) args
+    | "f6" (* < *) -> bin_op (build_icmp Icmp.Slt) args
+    | "f7" (* == *) -> bin_op (build_icmp Icmp.Eq) args
+    | "f8" (* > *) -> bin_op (build_icmp Icmp.Sgt) args
+    | "f9" (* >= *) -> bin_op (build_icmp Icmp.Sge) args
+    | "f10" (* -. *) -> op build_fsub args
+    | "f11" (* +. *) -> op build_fadd args
+    | "f12" (* *. *) -> op build_fmul args
+    | "f13" (* /. *) -> op build_fdiv args
+    | "f14" (* <=. *) -> bin_op (build_fcmp Fcmp.Ole) args
+    | "f15" (* <. *) -> bin_op (build_fcmp Fcmp.Olt) args
+    | "f16" (* ==. *) -> bin_op (build_fcmp Fcmp.Oeq) args
+    | "f17" (* >. *) -> bin_op (build_fcmp Fcmp.Olt) args
+    | "f18" (* >=. *) -> bin_op (build_fcmp Fcmp.Olt) args
+    | "f19" ->
         let ft = function_type unit_type [| integer_type |] in
         let f = declare_function "print_int" ft the_module in
         let* arg = List.hd args |> codegen_imm in
         build_call ft f [| arg |] "" builder |> return
-    | "f6" ->
+    | "f20" ->
         let ft = function_type unit_type [| pointer_type contex |] in
         let f = declare_function "print_string" ft the_module in
         let* arg = List.hd args |> codegen_imm in

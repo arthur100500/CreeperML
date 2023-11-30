@@ -46,8 +46,6 @@ module Std = struct
     open Type_ast.TypeAst
     open Type_ast.InferTypeUtils
 
-    let find = snd_next () |> Names.find |> fst
-
     (* *)
     let int_const = t_ground t_int |> with_lvls 0 0
     let unit_const = t_ground t_unit |> with_lvls 0 0
@@ -58,34 +56,34 @@ module Std = struct
     let triple fst snd rez = arr snd rez |> t_arrow fst |> with_lvls 0 0
 
     (* int operations *)
-    let sub = (find, triple int_const int_const int_const)
-    let add = (find, triple int_const int_const int_const)
-    let mul = (find, triple int_const int_const int_const)
-    let div = (find, triple int_const int_const int_const)
+    let sub = ("-", triple int_const int_const int_const)
+    let add = ("+", triple int_const int_const int_const)
+    let mul = ("*", triple int_const int_const int_const)
+    let div = ("/", triple int_const int_const int_const)
 
     (* int bool *)
-    let le = (find, triple int_const int_const bool_const)
-    let less = (find, triple int_const int_const bool_const)
-    let eq = (find, triple int_const int_const bool_const)
-    let gr = (find, triple int_const int_const bool_const)
-    let ge = (find, triple int_const int_const bool_const)
+    let le = ("<=", triple int_const int_const bool_const)
+    let less = ("<", triple int_const int_const bool_const)
+    let eq = ("=", triple int_const int_const bool_const)
+    let gr = (">", triple int_const int_const bool_const)
+    let ge = (">=", triple int_const int_const bool_const)
 
     (* float operations *)
-    let fsub = (find, triple float_const float_const float_const)
-    let fadd = (find, triple float_const float_const float_const)
-    let fmul = (find, triple float_const float_const float_const)
-    let fdiv = (find, triple float_const float_const float_const)
+    let fsub = ("-.", triple float_const float_const float_const)
+    let fadd = ("+.", triple float_const float_const float_const)
+    let fmul = ("*.", triple float_const float_const float_const)
+    let fdiv = ("/.", triple float_const float_const float_const)
 
     (* float bool*)
-    let fle = (find, triple float_const float_const bool_const)
-    let fless = (find, triple float_const float_const bool_const)
-    let feq = (find, triple float_const float_const bool_const)
-    let fgr = (find, triple float_const float_const bool_const)
-    let fge = (find, triple float_const float_const bool_const)
+    let fle = ("<=.", triple float_const float_const bool_const)
+    let fless = ("<.", triple float_const float_const bool_const)
+    let feq = ("==.", triple float_const float_const bool_const)
+    let fgr = (">=.", triple float_const float_const bool_const)
+    let fge = (">.", triple float_const float_const bool_const)
 
     (* prints *)
-    let print_int = (find, arr int_const unit_const)
-    let print_string = (find, arr string_const unit_const)
+    let print_int = ("print_int", arr int_const unit_const)
+    let print_string = ("print_string", arr string_const unit_const)
 
     let env =
       [
