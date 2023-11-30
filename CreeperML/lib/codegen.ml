@@ -12,13 +12,14 @@ open Monad.Result
 module Codegen = struct
   type funvar =
     | Func of anf_val_binding * (anf_val_binding -> llvalue t)
-    | Val of llvalue  (** add carry *)
+    | Val of llvalue
 
   let contex = global_context ()
   let the_module = create_module contex "CreeperMLBestLenguage"
   let builder = builder contex
   let named_values : (string, funvar) Hashtbl.t = Hashtbl.create 42
   let function_types : (string, lltype) Hashtbl.t = Hashtbl.create 42
+  let closurefills : (string, int * int * lltype) Hashtbl.t = Hashtbl.create 10
   let float_type = float_type contex
   let bool_type = i32_type contex
   let integer_type = i32_type contex
@@ -55,6 +56,56 @@ module Codegen = struct
         function_type (get_type r) (List.map get_type args |> Array.of_list)
     | _ -> pointer_type contex
 
+  let add_to_closure n adrcl e =
+    let ix, len, t =
+      Hashtbl.find closurefills n |> fun (i, len, t) -> (i + 1, len, t)
+    in
+    Hashtbl.replace closurefills n (ix, len, t);
+    if ix < len then (
+      let aix =
+        build_gep t adrcl [| int_const 0; int_const ix |] "len" builder
+      in
+      ignore (build_store e aix builder);
+      false)
+    else true
+
+  let gen_closure n f ft =
+    let t = param_types ft |> Array.append [| ft |] |> struct_type contex in
+    let addr = build_malloc t "closuremalloc" builder in
+    let a =
+      build_gep t addr [| int_const 0; int_const 0 |] "function" builder
+    in
+    ignore (build_store f a builder);
+    Hashtbl.add closurefills n (0, param_types ft |> Array.length, t);
+    addr
+
+  let apply_closure n adrcl =
+    let t = Hashtbl.find closurefills n |> fun (_, _, t) -> t in
+    let fadr =
+      build_gep t adrcl [| int_const 0; int_const 0 |] "functionadr" builder
+    in
+    let ts = subtypes t |> Array.to_list in
+    let f = build_load (List.hd ts) fadr "function " builder in
+
+    let args =
+      List.mapi
+        (fun i argt ->
+          let argadr =
+            build_gep t adrcl
+              [| int_const 0; int_const (i + 1) |]
+              "argadr" builder
+          in
+          build_load argt argadr "arg" builder)
+        (List.tl ts)
+      |> Array.of_list
+    in
+    let callname =
+      match List.hd ts |> classify_type with Void -> "" | _ -> "closurecall"
+    in
+    build_call
+      (function_type (List.hd ts) (List.tl ts |> Array.of_list))
+      f args callname builder
+
   let codegen_imm = function
     | ImmLit t ->
         (match typed_value t with
@@ -88,14 +139,12 @@ module Codegen = struct
           else return f
     in
     Hashtbl.add function_types name ft;
-    if List.length args > 0 then
-      Array.iteri
-        (fun i e ->
-          let n = List.nth args i |> str_name in
-          set_value_name n e;
-          Hashtbl.add named_values n (Val e))
-        (params f)
-    else ();
+    Array.iteri
+      (fun i e ->
+        let n = List.nth args i |> str_name in
+        set_value_name n e;
+        Hashtbl.add named_values n (Val e))
+      (params f);
     return f
 
   let codegen_predef name args =
@@ -157,50 +206,92 @@ module Codegen = struct
         in
         Array.iteri alloc es;
         return addr
+        (* | AApply (ImmVal f, args) -> (
+            let rez_t, callname =
+              typ f |> rez_t |> fun t ->
+              (match t with TyGround TUnit -> "" | _ -> "calltmp") |> fun name ->
+              (get_type t, name)
+            in
+            let name = typed_value f |> Printf.sprintf "f%d" in
+            match lookup_function name the_module with
+            | None -> codegen_predef name args
+            | Some f ->
+                let params = params f in
+                if List.length args != Array.length params then
+                  error "Count of args and arrnost' of function are not same"
+                else
+                  let args =
+                    List.map2
+                      (fun a p ->
+                        match type_of p |> classify_type with
+                        | TypeKind.Pointer ->
+                            codegen_imm a >>| fun a ->
+                            let addr = build_alloca (type_of a) "polytmp" builder in
+                            ignore (build_store a addr builder);
+                            addr
+                        | _ -> codegen_imm a)
+                      args (Array.to_list params)
+                  in
+                  let* args =
+                    List.fold_right
+                      (fun a acc ->
+                        let* a = a in
+                        let* acc = acc in
+                        a :: acc |> return)
+                      args (return [])
+                    >>| Array.of_list
+                  in
+                  let* fun_t =
+                    try Hashtbl.find function_types name |> return
+                    with _ -> Printf.sprintf "can't find type of %s" name |> error
+                  in
+                  let rz = build_call fun_t f args callname builder in
+                  (match return_type fun_t |> classify_type with
+                  | TypeKind.Pointer -> build_load rez_t rz "polyrez" builder
+                  | _ -> rz)
+                  |> return) *)
     | AApply (ImmVal f, args) -> (
-        let rez_t, callname =
-          typ f |> rez_t |> fun t ->
-          (match t with TyGround TUnit -> "" | _ -> "calltmp") |> fun name ->
-          (get_type t, name)
+        let name = str_name f in
+        let fname = String.cat "f" name in
+        let* ars = monadic_map args codegen_imm in
+        let call =
+          match typ f |> rez_t with TyGround TUnit -> "" | _ -> "call"
         in
-        let name = typed_value f |> Printf.sprintf "f%d" in
-        match lookup_function name the_module with
-        | None -> codegen_predef name args
-        | Some f ->
-            let params = params f in
-            if List.length args != Array.length params then
-              error "Count of args and arrnost' of function are not same"
-            else
-              let args =
-                List.map2
-                  (fun a p ->
-                    match type_of p |> classify_type with
-                    | TypeKind.Pointer ->
-                        codegen_imm a >>| fun a ->
-                        let addr = build_alloca (type_of a) "polytmp" builder in
-                        ignore (build_store a addr builder);
-                        addr
-                    | _ -> codegen_imm a)
-                  args (Array.to_list params)
-              in
-              let* args =
-                List.fold_right
-                  (fun a acc ->
-                    let* a = a in
-                    let* acc = acc in
-                    a :: acc |> return)
-                  args (return [])
-                >>| Array.of_list
-              in
-              let* fun_t =
-                try Hashtbl.find function_types name |> return
-                with _ -> Printf.sprintf "can't find type of %s" name |> error
-              in
-              let rz = build_call fun_t f args callname builder in
-              (match return_type fun_t |> classify_type with
-              | TypeKind.Pointer -> build_load rez_t rz "polyrez" builder
-              | _ -> rz)
-              |> return)
+        let cl =
+          match Hashtbl.find_opt named_values name with
+          | Some (Val v) -> (
+              match type_of v |> classify_type with
+              | Function -> gen_closure name v (type_of v) |> Option.some
+              | _ -> Some v)
+          | _ -> None
+        in
+        match cl with
+        | Some cl ->
+            let f =
+              List.fold_left
+                (fun acc a -> add_to_closure name cl a || acc)
+                false ars
+            in
+            (if f then apply_closure name cl else cl) |> return
+        | None -> (
+            match lookup_function fname the_module with
+            | Some f ->
+                if params f |> Array.length == List.length ars then
+                  build_call
+                    (Hashtbl.find function_types fname)
+                    f (Array.of_list ars) call builder
+                  |> return
+                else
+                  let cl =
+                    gen_closure name f (Hashtbl.find function_types fname)
+                  in
+                  let f =
+                    List.fold_left
+                      (fun acc a -> add_to_closure name cl a || acc)
+                      false ars
+                  in
+                  (if f then apply_closure name cl else cl) |> return
+            | None -> codegen_predef fname args))
     | Aite (cond, { lets = then_lets; res = tr }, { lets = else_lets; res = fl })
       ->
         let curr_block = insertion_block builder in
