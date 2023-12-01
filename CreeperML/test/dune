@@ -46,6 +46,16 @@
  (instrumentation
   (backend bisect_ppx)))
 
+(executable
+ (name test_llvm)
+ (modules test_llvm)
+ (public_name test_llvm)
+ (libraries CreeperML stdio)
+ (instrumentation
+  (backend bisect_ppx))
+ (link_deps
+  (file ../lib/bindings.co)))
+
 (cram
  (deps
   ./test_infer.exe
@@ -53,4 +63,6 @@
   ./test_db.exe
   ./test_closures.exe
   ./test_anf_opt.exe
-  ./test_anf.exe))
+  ./test_anf.exe
+  ./test_llvm.exe
+  ../lib/bindings.co))

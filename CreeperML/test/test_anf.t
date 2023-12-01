@@ -137,7 +137,6 @@
   $ ./test_anf.exe <<- EOF
   > let r = if (if 2 - 10 <= 2 then false else true) then 2 - 3 else (if true then 77 - 33 + 23 else (25 + 11 * 3))
   > EOF
-
   let (45) = v(2) l(2) l(10)
   
   let (46) = v(1) v(45) l(2)

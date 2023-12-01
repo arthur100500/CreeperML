@@ -13,6 +13,12 @@
    %{targets}
    (run menhir --compile-errors %{deps}))))
 
+(rule
+ (deps bindings.c)
+ (targets bindings.co)
+ (action
+  (run gcc -shared %{deps} -o %{targets})))
+
 (library
  (name CreeperML)
  (public_name CreeperML)

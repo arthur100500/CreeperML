@@ -4,4 +4,5 @@
 
 module Compiler : sig
   val compile : string -> unit
+  val dmp_code : string -> unit
 end
