@@ -2,7 +2,6 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-open Result
 open CreeperML
 open Infer.Infer
 open Parser_interface.ParserInterface
@@ -74,14 +73,16 @@ let operators =
 
 let input_program =
   {|
-let fac n =
-let rec helper n acc =
-if n <= 1 then 
-acc
-else
-helper (n - 1) (n * acc)
-in
-helper n 1
+  let fac n =
+    let rec helper n acc =
+      if n <= 1 then 
+        acc
+      else
+        helper (n - 1) (n * acc)
+    in
+  helper n 1
+
+  let f a = print_int (fac 5)
 |}
 
 let () =
@@ -91,9 +92,21 @@ let () =
   let apply_anf_convert p = Ok (anf_of_cf p) in
   let apply_anf_optimizations p = Ok (optimize_moves p) in
   let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
+  (* let apply_asm p = Ok (Asm.Asm.asm_of_anf p) in *)
   let apply_parser = from_string in
-  apply_parser input_program >>= apply_infer >>= apply_db_renaming
-  >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
-  |> function
-  | Ok x -> print_anf_program true x |> print_endline
-  | Error x -> print_endline x
+  if true then
+    apply_parser input_program >>= apply_infer >>= apply_db_renaming
+    >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
+    |> function
+    | Ok x -> (
+        print_anf_program true x |> print_endline;
+        Codegen.Codegen.top_lvl x |> function
+        | Ok _ -> Codegen.Codegen.dmp_code "toy.ll"
+        | Error err -> print_endline err)
+    | Error x -> print_endline x
+  else
+    apply_parser input_program >>= apply_infer >>= apply_db_renaming
+    >>= apply_closure_convert
+    |> function
+    | Ok x -> print_cf_program false x |> print_endline
+    | Error x -> print_endline x

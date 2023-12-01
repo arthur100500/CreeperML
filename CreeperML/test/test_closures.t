@@ -17,19 +17,11 @@
   > in
   > helper n 1
   > EOF
-  letc 11 (9) [7, 8] = 
+  letc 7 (8) (9) = 
     if ((v1 v8) 1) then v9 else ((v7 ((v2 v8) 1)) ((v3 v8) v9))
   
-  letc 12 (8) [7] = 
-    clsr[11][7, 8]
-  
-  letc 13 (6) [] = 
-    let 7 =   
-      clsr[12][7]
+  letc 10 (6) = 
     ((v7 v6) 1)
-  
-  let 10 = 
-    clsr[13][]
 
 +-------------------------+
 |  Simple function with   |
@@ -39,16 +31,12 @@
   > let f x =
   >   let g y = y + 1 in
   >   g 
-  letc 10 (7) [] = 
+  > EOF
+  letc 8 (7) = 
     ((v4 v7) 1)
   
-  letc 11 (6) [] = 
-    let 8 =   
-      clsr[10][]
+  letc 9 (6) = 
     v8
-  
-  let 9 = 
-    clsr[11][]
 
 +----------------------------------------+
 |  Simple function capturing environment |
@@ -58,16 +46,15 @@
   > let f x =
   >   let g y = y + x + 1 in
   >   g 
-  letc 10 (7) [6] = 
+  > EOF
+  letc 8 (6) (7) = 
     ((v4 ((v4 v7) v6)) 1)
   
-  letc 11 (6) [] = 
+  letc 9 (6) = 
     let 8 =   
-      clsr[10][6]
+      (v8 v6)
     v8
-  
-  let 9 = 
-    clsr[11][]
+
 
 +--------------------------------------------------+
 |  A lot of closures and partial applications      |
@@ -87,36 +74,34 @@
   >     e in
   >   w
   > let p = q 1 2 3 4 5 6
-  letc 19 (11) [6, 7, 8, 9, 10] = 
+  > EOF
+  letc 12 (6) (7) (8) (9) (10) (11) = 
     ((v4 ((v4 ((v4 ((v4 ((v4 v6) v7)) v8)) v9)) v10)) v11)
   
-  letc 20 (10) [6, 7, 8, 9] = 
+  letc 13 (6) (7) (8) (9) (10) = 
     let 12 =   
-      clsr[19][6, 7, 8, 9, 10]
+      (v12 v6 v7 v8 v9 v10)
     v12
   
-  letc 21 (9) [6, 7, 8] = 
+  letc 14 (6) (7) (8) (9) = 
     let 13 =   
-      clsr[20][6, 7, 8, 9]
+      (v13 v6 v7 v8 v9)
     v13
   
-  letc 22 (8) [6, 7] = 
+  letc 15 (6) (7) (8) = 
     let 14 =   
-      clsr[21][6, 7, 8]
+      (v14 v6 v7 v8)
     v14
   
-  letc 23 (7) [6] = 
+  letc 16 (6) (7) = 
     let 15 =   
-      clsr[22][6, 7]
+      (v15 v6 v7)
     v15
   
-  letc 24 (6) [] = 
+  letc 17 (6) = 
     let 16 =   
-      clsr[23][6]
+      (v16 v6)
     v16
-  
-  let 17 = 
-    clsr[24][]
   
   let 18 = 
     ((((((v17 1) 2) 3) 4) 5) 6)

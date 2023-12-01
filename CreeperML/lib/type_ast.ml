@@ -33,6 +33,7 @@ module InferTypeUtils = struct
   let t_string = TString
   let t_bool = TBool
   let t_unit = TUnit
+  let t_float = TFloat
   let t_arrow t1 t2 = TArrow (t1, t2)
   let t_tuple ts = TTuple ts
   let t_ground t = TGround t

@@ -13,23 +13,16 @@ module AnfTypeAst = struct
   type imm = ImmVal of tname | ImmLit of tliteral
 
   type anf_expr =
-    | AApply of imm * imm
+    | AApply of imm * imm list
     | ATuple of imm list
     | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
-    | AClosure of imm * imm list
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
 
-  type anf_fun_binding = {
-    name : tname;
-    arg : tname;
-    body : anf_body;
-    env_vars : tname list;
-  }
-
+  type anf_fun_binding = { name : tname; args : tname list; body : anf_body }
   type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
   type anf_program = anf_binding list
 end
@@ -58,12 +51,22 @@ module AnfConvert = struct
 
   let rec anf_of_expr (e : cf_typ_expr) : aer =
     match e.value with
-    | CFApply (left, right) ->
-        let left_bindings, left_imm = anf_of_expr left in
-        let right_bindings, right_imm = anf_of_expr right in
-        let self_tname = cnt_next () |> tname e.typ in
-        let self_binding = app left_imm right_imm |> binding self_tname in
-        (left_bindings @ right_bindings @ [ self_binding ], self_tname |> immv)
+    | CFApply (fn, args) ->
+        let rec apply_inner fn args =
+          match fn.value with
+          | CFApply (fn, old_args) -> apply_inner fn (old_args @ args)
+          | _ ->
+              let fn_bindings, fn_imm = anf_of_expr fn in
+              let arg_bindings, arg_imms =
+                List.map anf_of_expr args |> fun x ->
+                (List.map fst x, List.map snd x) |> fun (x, y) ->
+                (List.concat x, y)
+              in
+              let self_tname = cnt_next () |> tname e.typ in
+              let self_binding = app fn_imm arg_imms |> binding self_tname in
+              (fn_bindings @ arg_bindings @ [ self_binding ], self_tname |> immv)
+        in
+        apply_inner fn args
     | CFIfElse ite ->
         let i_bindings, if_imm = anf_of_expr ite.cond in
         let t_bindings, then_imm = anf_of_expr ite.t_body in
@@ -84,13 +87,6 @@ module AnfConvert = struct
         let self_tname = cnt_next () |> tname e.typ in
         let self_binding = tup tuple_imms |> binding self_tname in
         (bindings @ [ self_binding ], self_tname |> immv)
-    | CFClosure (c, env) ->
-        let env = List.map immv env in
-        let self_tname = cnt_next () |> tname e.typ in
-        let self_binding =
-          AClosure (c |> tname e.typ |> immv, env) |> binding self_tname
-        in
-        ([ self_binding ], self_tname |> immv)
 
   let rec lv_binds (lv : tlvalue) (er : imm) : anf_val_binding list =
     match (lv.value, lv.typ) with
@@ -105,6 +101,7 @@ module AnfConvert = struct
         let zipped = List.map2 (fun x y -> (x, y)) lvalues typs in
         let decs = List.mapi inner zipped in
         List.concat decs
+    | DLvUnit, _ -> [ binding (tname lv.typ (cnt_next ())) (imm er) ]
     | _, _ -> []
 
   let rec anf_of_let_binding (l : cf_typ_let_binding) : anf_val_binding list =
@@ -123,14 +120,20 @@ module AnfConvert = struct
     in
     let bindings = List.fold_left inner [] l.b.cf_lets in
     let expr_bindings, res = anf_of_expr l.b.cf_expr in
-    let arg_name = cnt_next () |> tname l.args.typ in
-    let arg_imm = arg_name |> immv in
-    let arg_decs = lv_binds l.args arg_imm in
+    let inner2 a =
+      let arg_name = cnt_next () |> tname a.typ in
+      let arg_imm = arg_name |> immv in
+      let arg_decs = lv_binds a arg_imm in
+      (arg_decs, arg_name)
+    in
+    let arg_decs, arg_names =
+      List.map inner2 l.args |> fun x ->
+      (List.concat (List.map fst x), List.map snd x)
+    in
     let lets = arg_decs @ bindings @ expr_bindings in
     let body = { lets; res } in
-    let env_vars = l.env_vars in
     let name = l.name in
-    { name; arg = arg_name; body; env_vars }
+    { name; args = arg_names; body }
 
   let anf_of_cf (p : cf_typ_program) : anf_program =
     let inner xs = function
@@ -142,6 +145,7 @@ end
 
 module AnfOptimizations = struct
   open AnfTypeAst
+  open Type_ast.TypeAst
 
   module DbName = struct
     type t = tname
@@ -163,7 +167,9 @@ module AnfOptimizations = struct
   let rec apply_moves_to_expr (nmm : nmm) (e : anf_expr) : anf_expr =
     let rn_imm = apply_moves_to_imm nmm in
     match e with
-    | AApply (x, y) -> AApply (rn_imm x, rn_imm y)
+    | AApply (x, args) ->
+        let args = List.map rn_imm args in
+        AApply (rn_imm x, args)
     | ATuple xs -> ATuple (List.map rn_imm xs)
     | Aite (i, t, e) ->
         let i = rn_imm i in
@@ -176,7 +182,6 @@ module AnfOptimizations = struct
         Aite (i, t, e)
     | AImm i -> AImm (rn_imm i)
     | ATupleAccess (t, i) -> ATupleAccess (rn_imm t, i)
-    | AClosure (cl, env) -> AClosure (rn_imm cl, List.map rn_imm env)
 
   and apply_moves_to_val (nmm : nmm) (b : anf_val_binding) =
     let nmm =
@@ -202,11 +207,10 @@ module AnfOptimizations = struct
     (deopt_lst res, nmm)
 
   let apply_moves_to_fun (nmm : nmm) (fn : anf_fun_binding) =
-    let env_vars = List.map (try_rename nmm) fn.env_vars in
     let lets, nmm = apply_moves_to_vals nmm fn.body.lets in
     let res = apply_moves_to_imm nmm fn.body.res in
     let body = { lets; res } in
-    ({ fn with body; env_vars }, nmm)
+    ({ fn with body }, nmm)
 
   let optimize_moves (p : anf_program) =
     let deopt_val x = match x with None -> [] | Some x -> [ AnfVal x ] in

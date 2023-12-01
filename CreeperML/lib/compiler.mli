@@ -2,8 +2,7 @@
 
 (** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-module Counter : sig
-  val cnt_next : unit -> int
-  val snd_next : unit -> int
-  val third_next : unit -> int
+module Compiler : sig
+  val compile : string -> unit
+  val dmp_code : string -> unit
 end
