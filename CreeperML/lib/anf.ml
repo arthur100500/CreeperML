@@ -18,6 +18,7 @@ module AnfTypeAst = struct
     | Aite of imm * anf_body * anf_body
     | AImm of imm
     | ATupleAccess of imm * int
+    | AClosure of tname * imm list
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
@@ -87,6 +88,13 @@ module AnfConvert = struct
         let self_tname = cnt_next () |> tname e.typ in
         let self_binding = tup tuple_imms |> binding self_tname in
         (bindings @ [ self_binding ], self_tname |> immv)
+    | CFClosure (c, env) ->
+        let env = List.map immv env in
+        let self_tname = cnt_next () |> tname e.typ in
+        let self_binding =
+          AClosure (c |> tname e.typ, env) |> binding self_tname
+        in
+        ([ self_binding ], self_tname |> immv)
 
   let rec lv_binds (lv : tlvalue) (er : imm) : anf_val_binding list =
     match (lv.value, lv.typ) with
@@ -182,6 +190,7 @@ module AnfOptimizations = struct
         Aite (i, t, e)
     | AImm i -> AImm (rn_imm i)
     | ATupleAccess (t, i) -> ATupleAccess (rn_imm t, i)
+    | AClosure (cl, env) -> AClosure (try_rename nmm cl, List.map rn_imm env)
 
   and apply_moves_to_val (nmm : nmm) (b : anf_val_binding) =
     let nmm =

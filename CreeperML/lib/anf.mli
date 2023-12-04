@@ -49,6 +49,8 @@ module AnfTypeAst : sig
     | AImm of imm  (** Immidiate value (var or literal)*)
     | ATupleAccess of imm * int
         (** Accessing tuple, tuple is imm, index is int *)
+    | AClosure of tname * imm list
+        (** Allocation of closure with function tname and enviroment env *)
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   (** ANF body: some lets and result of block, used in ite branches and funs *)
