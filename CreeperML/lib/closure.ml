@@ -13,6 +13,7 @@ module ClosureAst = struct
     | CFValue of int
     | CFTuple of cf_typ_expr list
     | CFIfElse of cf_if_else
+    | CFClosure of int * (int, ty) typed list
 
   and cf_if_else = {
     cond : cf_typ_expr;
@@ -38,6 +39,7 @@ module ClosureAst = struct
     name : (int, ty) typed;
     args : index_lvalue list;
     b : cf_typ_let_body;
+    env_vars : (int, ty) typed list;
   }
 
   type cf_binding =
@@ -220,16 +222,15 @@ module ClosureConvert = struct
                 {
                   is_rec = r;
                   name = typed e.typ cn;
-                  args = env_lval @ args;
+                  args;
                   b = cf_body;
+                  env_vars = env;
                 }
               in
               let typ_cf_val = CFValue cn |> typed e.typ in
               let f =
                 if env_lval = [] then typ_cf_val
-                else
-                  CFApply (typ_cf_val, List.map expr_of_lval env_lval)
-                  |> typed e.typ
+                else CFClosure (cn, env) |> typed e.typ
               in
               (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
         in
