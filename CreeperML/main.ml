@@ -83,12 +83,13 @@ let operators =
   *)
 let input_program =
   {| 
-  let id x = x
-  let rec fib n = if (id n) <= 2 then 1 else (fib ((id n) - 1)) + (fib ((id n) - 2))
-  let rec n_fib m =
-    let () = print_int (fib m) in
-    if 50 <= m then () else n_fib (m + 1)
-  let () = n_fib 0
+let f x y = x + y
+
+let h = f 3
+let g = f 5
+
+let () = print_int (h 7)
+let () = print_int (g 10)
 |}
 
 let () =
@@ -105,7 +106,7 @@ let () =
     >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
     |> function
     | Ok x ->
-        print_anf_program false x |> print_endline;
+        (* print_anf_program false x |> print_endline; *)
         Asm.compile x |> AsmOptimizer.optimize |> AsmRenderer.render
         |> print_endline
     | Error x -> print_endline x

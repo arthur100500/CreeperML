@@ -58,7 +58,12 @@ module AnfTypeAst : sig
   and anf_val_binding = { name : tname; e : anf_expr }
   (** ANF Value binding, usual binding like let x = f 3 a *)
 
-  type anf_fun_binding = { name : tname; args : tname list; body : anf_body }
+  type anf_fun_binding = {
+    name : tname;
+    args : tname list;
+    env : tname list;
+    body : anf_body;
+  }
   (** ANF Function binding, let name [args] = [lets] res, all in ANF*)
 
   (** ANF Binding is either ANF Value or ANF Function*)

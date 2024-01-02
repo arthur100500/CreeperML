@@ -3,11 +3,19 @@ module Asm = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Counter
+  open Type_ast.TypeAst
 
   type reg = string
-  type storage = Stack of int | Reg of string | IntConst of int
+
+  type storage =
+    | Stack of int
+    | Reg of reg
+    | IntConst of int
+    | Displacement of string * int
+    | Fndef of string (* Function name? *)
 
   let reg_size = 16
+  let void_ptr_size = 8
 
   type instruction =
     | Mov of storage * storage
@@ -42,6 +50,8 @@ module Asm = struct
   let rcx = Reg "rcx"
   let r8d = Reg "r8d"
   let r9d = Reg "r9d"
+  let r8 = Reg "r8"
+  let r9 = Reg "r9"
   let pop l = Pop l
   let add r1 r2 = Add (r1, r2)
   let imul r1 r2 = Imul (r1, r2)
@@ -56,6 +66,7 @@ module Asm = struct
   let cmp r1 r2 = Cmp (r1, r2)
   let call r = Call r
   let je x = Je x
+  let dp reg d = Displacement (reg, d)
 
   module MemMap = Map.Make (Int)
   module IntSet = Set.Make (Int)
@@ -65,6 +76,7 @@ module Asm = struct
      | Reg r -> r *)
 
   let external_fns = [ (* 5 *) ]
+  let std_fns = List.init 5 (fun x -> x + 1)
   let sizeof _ = 8
   let align16 x = if Int.rem x 16 <> 0 then x - Int.rem x 16 + 16 else x
   let sum_by f = List.fold_left (fun xs x -> xs + f x) 0
@@ -97,7 +109,7 @@ module Asm = struct
     | _ -> [ l.name ]
 
   let map_fn_stack (fn : anf_fun_binding) =
-    let reg_args, stack_args = split_args fn.args in
+    let reg_args, stack_args = split_args (fn.env @ fn.args) in
     let all_local_vars = List.concat_map collect_locals fn.body.lets in
     let args, last_reg_arg =
       List.fold_left
@@ -148,7 +160,7 @@ module Asm = struct
     | 5 -> [ call "print_int" ] @ stack_fix (* print int )*)
     | other -> [ call (Format.sprintf "fn%d" other) ] @ stack_fix @ [ push rax ]
 
-  let int_or_die x =
+  let int_of_literal x =
     match x.value with
     | LInt x -> x
     | LBool true -> 1
@@ -159,12 +171,12 @@ module Asm = struct
   let ld_imm mm imm =
     match imm with
     | ImmVal x -> MemMap.find x.value mm |> push |> fun x -> [ x ]
-    | ImmLit l -> int_or_die l |> ic |> push |> fun x -> [ x ]
+    | ImmLit l -> int_of_literal l |> ic |> push |> fun x -> [ x ]
 
   let mem_imm mm imm =
     match imm with
     | ImmVal x -> MemMap.find x.value mm
-    | ImmLit l -> int_or_die l |> ic
+    | ImmLit l -> int_of_literal l |> ic
 
   let fix_align_16 instructions size =
     instructions @ [ sub rsp (Int.rem size 16 |> ic) ]
@@ -194,14 +206,35 @@ module Asm = struct
     if List.mem fn.value external_fns |> not then compile_push_args_regs mm args
     else compile_push_args_stack mm args
 
-  let rec compile_expr mm (e : anf_expr) =
+  let rec arity_of_typ t =
+    match t with TyArrow (_, t2) -> 1 + arity_of_typ t2 | _ -> 0
+
+  let rec compile_expr mm all_fns (e : anf_expr) =
     match e with
-    | AApply (ImmVal fn, args) ->
+    | AApply (ImmVal fn, args)
+      when List.mem fn all_fns || List.mem fn.value std_fns ->
         compile_push_args fn mm args @ compile_fn_call fn.value args
+    | AApply (ImmVal fn, args) ->
+        let arity = arity_of_typ fn.typ in
+        let load_size = [ mov rdi (List.length args * void_ptr_size |> ic) ] in
+        let create_args_ptr = [ call "cm_malloc" ] in
+        let store_args =
+          List.mapi
+            (fun i arg -> mov (dp "rax" (i * void_ptr_size)) (mem_imm mm arg))
+            args
+        in
+        let load_self = mov rdi (mem_imm mm (ImmVal fn)) in
+        let load_arity = mov rdx (ic arity) in
+        let load_args = mov rsi rax in
+        (* (closure *closure, int64_t *other_args, int64_t N) *)
+        let call_apply = call "apply_closure" in
+        let push_res = push rax in
+        load_size @ create_args_ptr @ store_args
+        @ (load_args :: load_self :: load_arity :: call_apply :: [ push_res ])
     | AImm i -> ld_imm mm i
     | Aite (i, t, e) ->
         let compile_block =
-          List.fold_left (fun xs x -> xs @ compile_vb mm x) []
+          List.fold_left (fun xs x -> xs @ compile_vb mm all_fns x) []
         in
         let if_id = Counter.cnt_next () in
         let mklabel name = [ Label (Format.sprintf "%s_%d" name if_id) ] in
@@ -218,15 +251,41 @@ module Asm = struct
           @ [ pop rax; cmp rax (ic 0); je (Format.sprintf "else_%d" if_id) ]
         in
         if_part @ then_branch @ else_branch
+    | AClosure (fn, args) ->
+        let arity = List.length args + arity_of_typ fn.typ in
+        let load_size = [ mov rsi (arity * void_ptr_size |> ic) ] in
+        let create_env_ptr = [ call "cm_malloc" ] in
+        let store_args =
+          [ push r9 ]
+          @ (List.mapi
+               (fun i arg ->
+                 [
+                   mov r9 (mem_imm mm arg);
+                   mov (dp "rax" (i * void_ptr_size)) r9;
+                 ])
+               args
+            |> List.concat)
+          @ [ pop r9 ]
+        in
+        let load_argv = [ mov rsi rax ] in
+        let load_argc = [ mov rdx (List.length args |> ic) ] in
+        print_endline (show_ty fn.typ);
+        let load_arity = [ mov rdi (arity |> ic) ] in
+        let load_fn = [ mov rcx (Fndef (Format.sprintf "fn%d" fn.value)) ] in
+        (* int64_t arity, int64_t *argv, int64_t argc, int64_t(fn)() *)
+        let create_closure = [ call "allocate_closure" ] in
+        let push_res = [ push rax ] in
+        load_size @ create_env_ptr @ store_args @ load_argv @ load_argc
+        @ load_arity @ load_fn @ create_closure @ push_res
     | _ -> failwith "not done"
 
-  and compile_vb mm (vb : anf_val_binding) : instruction list =
+  and compile_vb mm all_fns (vb : anf_val_binding) : instruction list =
     let store =
       match vb.name.typ with
       | TyGround TUnit -> []
       | _ -> MemMap.find vb.name.value mm |> pop |> fun x -> [ x ]
     in
-    let expr = compile_expr mm vb.e in
+    let expr = compile_expr mm all_fns vb.e in
     expr @ store
 
   let rec collect_expr_size (e : anf_val_binding) =
@@ -235,7 +294,7 @@ module Asm = struct
         (sum_by collect_expr_size) t.lets + (sum_by collect_expr_size) e.lets
     | _ -> sizeof e.name
 
-  let compile_fn (fn : anf_fun_binding) =
+  let compile_fn all_fns (fn : anf_fun_binding) =
     let name = Format.sprintf "fn%d" fn.name.value in
     let mm = map_fn_stack fn in
     let stack_len =
@@ -245,7 +304,7 @@ module Asm = struct
     in
     let sub_esp = [ sub rsp (stack_len + reg_size |> align16 |> ic) ] in
     let body =
-      List.fold_left (fun xs x -> xs @ compile_vb mm x) [] fn.body.lets
+      List.fold_left (fun xs x -> xs @ compile_vb mm all_fns x) [] fn.body.lets
     in
     let res = [ mov rax (mem_imm mm fn.body.res) ] in
     let save_base = [ push rbp; mov rbp rsp ] in
@@ -258,20 +317,9 @@ module Asm = struct
             Mov (MemMap.find hd.value mm, reg) :: instrs |> helper tl (i + 1)
         | _, None -> instrs
       in
-      helper fn.args 0 []
+      helper (fn.env @ fn.args) 0 []
     in
     { name; body = save_base @ sub_esp @ save_args @ body @ res @ ret }
-
-  let add_custom custom prog = prog @ custom
-
-  let make_main x =
-    {
-      name = "main";
-      body =
-        [ push rbp; mov rbp rsp ]
-        @ x
-        @ [ mov rax (ic 0); mov rsp rbp; pop rbp; Ret ];
-    }
 
   let compile ast =
     let fn_defs, main_fn =
@@ -279,9 +327,11 @@ module Asm = struct
         (function AnfFun fn -> Left fn | AnfVal v -> Right v)
         ast
     in
+    let all_fns = List.map (fun (x : anf_fun_binding) -> x.name) fn_defs in
     let main_fn =
       {
         args = [];
+        env = [];
         name = { value = -2; typ = TyGround TInt };
         body =
           {
@@ -289,21 +339,35 @@ module Asm = struct
             res = ImmLit { value = LInt 0; typ = TyGround TInt };
           };
       }
-      |> compile_fn
+      |> compile_fn all_fns
       |> fun x -> { x with name = "main" }
     in
-    main_fn :: List.map compile_fn fn_defs
+    main_fn :: List.map (compile_fn all_fns) fn_defs
 end
 
 module AsmRenderer = struct
   open Asm
 
-  let rm = function
+  let header =
+    {|
+extern print_int
+extern allocate_closure
+extern apply_closure
+extern cm_malloc
+
+global main
+|}
+
+  let rec rm = function
     | Stack d when d > 0 -> Format.sprintf "qword [rbp+%d]" d
     | Stack d when d < 0 -> Format.sprintf "qword [rbp%d]" d
     | Stack _ -> Format.sprintf "qword [rbp]"
     | Reg r -> r
     | IntConst c -> Format.sprintf "%d" c
+    | Displacement (r, d) when d > 0 -> Format.sprintf "qword [%s+%d]" r d
+    | Displacement (r, d) when d < 0 -> Format.sprintf "qword [%s%d]" r d
+    | Displacement (r, _) -> Format.sprintf "qword [%s]" r
+    | Fndef fname -> fname
 
   let render_instr = function
     | Mov (src, dst) -> Format.sprintf "mov %s, %s" (rm src) (rm dst)
@@ -334,8 +398,7 @@ module AsmRenderer = struct
     Format.sprintf "%s%s" nm_dec (render_instrs p.body)
 
   let render (p : fn list) =
-    List.map render_fn p |> String.concat "\n\n"
-    |> Format.sprintf "extern print_int\nglobal main\n%s"
+    List.map render_fn p |> String.concat "\n\n" |> Format.sprintf "%s%s" header
 end
 
 module AsmOptimizer = struct
