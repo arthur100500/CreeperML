@@ -81,15 +81,25 @@ let operators =
   let id x = (id2 x) + (id2 (x + 1))
   let () = print_int (id 5)
   *)
+
+(*
+  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
+  let f t = fac t (fun x -> x)
+  
+  let () = print_int (f 5)
+  *)
+
+(*
+  let plus m n k = k (n + m)
+  let mul m n k = k (n * m)
+
+  let () = plus 1 2 (fun x -> mul 10 x print_int)   
+
+*)
 let input_program =
   {| 
-let f x y = x + y
-
-let h = f 3
-let g = f 5
-
-let () = print_int (h 7)
-let () = print_int (g 10)
+  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
+  let () = fac 6 print_int
 |}
 
 let () =
@@ -106,7 +116,7 @@ let () =
     >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
     |> function
     | Ok x ->
-        (* print_anf_program false x |> print_endline; *)
+        print_anf_program false x |> print_endline;
         Asm.compile x |> AsmOptimizer.optimize |> AsmRenderer.render
         |> print_endline
     | Error x -> print_endline x

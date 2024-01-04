@@ -30,6 +30,7 @@ module Asm = struct
     | Ret
     | Jmp of string
     | Je of string
+    | Jne of string
     | Cmp of storage * storage
     | Setge of storage
     | Setg of storage
@@ -52,6 +53,9 @@ module Asm = struct
   let r9d = Reg "r9d"
   let r8 = Reg "r8"
   let r9 = Reg "r9"
+  let r10 = Reg "r10"
+  let r11 = Reg "r11"
+  let r12 = Reg "r12"
   let pop l = Pop l
   let add r1 r2 = Add (r1, r2)
   let imul r1 r2 = Imul (r1, r2)
@@ -66,17 +70,37 @@ module Asm = struct
   let cmp r1 r2 = Cmp (r1, r2)
   let call r = Call r
   let je x = Je x
+  let jne x = Jne x
+  let jmp x = Jmp x
   let dp reg d = Displacement (reg, d)
 
   module MemMap = Map.Make (Int)
   module IntSet = Set.Make (Int)
 
-  (* let render_storage = function
-     | Stack i -> Format.sprintf "qword [esp - %d]" i
-     | Reg r -> r *)
+  let rec render_storage = function
+    | Stack d when d > 0 -> Format.sprintf "qword [rbp+%d]" d
+    | Stack d when d < 0 -> Format.sprintf "qword [rbp%d]" d
+    | Stack _ -> Format.sprintf "qword [rbp]"
+    | Reg r -> r
+    | IntConst c -> Format.sprintf "%d" c
+    | Displacement (r, d) when d > 0 -> Format.sprintf "qword [%s+%d]" r d
+    | Displacement (r, d) when d < 0 -> Format.sprintf "qword [%s%d]" r d
+    | Displacement (r, _) -> Format.sprintf "qword [%s]" r
+    | Fndef fname -> fname
 
   let external_fns = [ (* 5 *) ]
-  let std_fns = List.init 5 (fun x -> x + 1)
+
+  module NameMap = Map.Make (Int)
+  module ArityMap = Map.Make (String)
+
+  let std_fns =
+    (* TODO: bring it from main or other file *)
+    NameMap.empty
+    |> NameMap.add 1 "less_equals"
+    |> NameMap.add 2 "minus" |> NameMap.add 3 "multiply" |> NameMap.add 4 "plus"
+    |> NameMap.add 5 "print_int"
+
+  let std_fns_arity = ArityMap.singleton "print_int" 1
   let sizeof _ = 8
   let align16 x = if Int.rem x 16 <> 0 then x - Int.rem x 16 + 16 else x
   let sum_by f = List.fold_left (fun xs x -> xs + f x) 0
@@ -168,70 +192,119 @@ module Asm = struct
     | LUnit -> 0
     | _ -> failwith "not done"
 
-  let ld_imm mm imm =
-    match imm with
-    | ImmVal x -> MemMap.find x.value mm |> push |> fun x -> [ x ]
-    | ImmLit l -> int_of_literal l |> ic |> push |> fun x -> [ x ]
+  let rec arity_of_typ t =
+    match t with TyArrow (_, t2) -> 1 + arity_of_typ t2 | _ -> 0
 
-  let mem_imm mm imm =
+  let rec alloc_closure all_fns mm fn args =
+    let arity = List.length args + arity_of_typ fn.typ in
+    let fn_name =
+      match NameMap.find_opt fn.value std_fns with
+      | None -> Format.sprintf "fn%d" fn.value
+      | Some x -> x
+    in
+    let load_size = [ mov rsi (arity * void_ptr_size |> ic) ] in
+    let create_env_ptr = [ call "cm_malloc" ] in
+    let store_args =
+      [ push r9 ]
+      @ (List.mapi
+           (fun i arg ->
+             [
+               mov r9 (mem_imm all_fns mm arg);
+               mov (dp "rax" (i * void_ptr_size)) r9;
+             ])
+           args
+        |> List.concat)
+      @ [ pop r9 ]
+    in
+    let load_argv = [ mov rdx rax ] in
+    let load_argc = [ mov rsi (List.length args |> ic) ] in
+    print_endline (show_ty fn.typ);
+    let load_fn = [ mov rdi (Fndef fn_name) ] in
+    (* function *clsr, cmptr argc, cmptr *argv *)
+    let create_closure = [ call "create_function" ] in
+    let push_res = [ push rax ] in
+    load_size @ create_env_ptr @ load_argv @ store_args @ load_argc @ load_fn
+    @ create_closure @ push_res
+
+  and mem_imm fns mm imm =
     match imm with
+    | ImmVal v when List.mem v.value fns ->
+        Fndef (Format.sprintf "fn%d" v.value)
     | ImmVal x -> MemMap.find x.value mm
     | ImmLit l -> int_of_literal l |> ic
+
+  let ld_imm fns mm imm =
+    match imm with
+    | ImmVal v when List.mem v.value fns -> alloc_closure fns mm v []
+    | ImmVal v when MemMap.mem v.value std_fns -> alloc_closure fns mm v []
+    | _ -> mem_imm fns mm imm |> push |> fun x -> [ x ]
 
   let fix_align_16 instructions size =
     instructions @ [ sub rsp (Int.rem size 16 |> ic) ]
 
-  let compile_push_args_regs mm (args : imm list) =
+  let compile_push_args_regs fns mm (args : imm list) =
     let instr, _, size =
       List.fold_left
         (fun (xs, arg_i, s) arg ->
-          let loc = mem_imm mm arg in
+          let loc = mem_imm fns mm arg in
           match get_arg_loc arg_i with
           | Some reg -> (xs @ [ Mov (reg, loc) ], arg_i + 1, s)
-          | None -> (xs @ ld_imm mm arg, arg_i + 1, s + sizeof arg))
+          | None -> (xs @ ld_imm fns mm arg, arg_i + 1, s + sizeof arg))
         ([], 0, 0) args
     in
     fix_align_16 instr size
 
-  let compile_push_args_stack mm (args : imm list) =
+  let compile_push_args_stack fns mm (args : imm list) =
     let instr, _, size =
       List.fold_left
         (fun (xs, arg_i, s) arg ->
-          xs @ ld_imm mm arg |> fun x -> (x, arg_i + 1, s + sizeof x))
+          xs @ ld_imm fns mm arg |> fun x -> (x, arg_i + 1, s + sizeof x))
         ([], 0, 0) args
     in
     fix_align_16 instr size
 
-  let compile_push_args fn mm args =
-    if List.mem fn.value external_fns |> not then compile_push_args_regs mm args
-    else compile_push_args_stack mm args
-
-  let rec arity_of_typ t =
-    match t with TyArrow (_, t2) -> 1 + arity_of_typ t2 | _ -> 0
+  let compile_push_args fn fns mm args =
+    if List.mem fn.value external_fns |> not then
+      compile_push_args_regs fns mm args
+    else compile_push_args_stack fns mm args
 
   let rec compile_expr mm all_fns (e : anf_expr) =
     match e with
-    | AApply (ImmVal fn, args)
-      when List.mem fn all_fns || List.mem fn.value std_fns ->
-        compile_push_args fn mm args @ compile_fn_call fn.value args
+    | AApply (ImmVal fn, args) when MemMap.mem fn.value std_fns ->
+        compile_push_args fn all_fns mm args @ compile_fn_call fn.value args
     | AApply (ImmVal fn, args) ->
-        let arity = arity_of_typ fn.typ in
-        let load_size = [ mov rdi (List.length args * void_ptr_size |> ic) ] in
-        let create_args_ptr = [ call "cm_malloc" ] in
+        let argc = List.length args in
+        (* Allocate array (at r11) *)
+        let allocate_args_arr =
+          [
+            mov rdi (argc * void_ptr_size |> ic); call "cm_malloc"; mov r12 rax;
+          ]
+        in
+        (* Move arguments to allocated array *)
         let store_args =
           List.mapi
-            (fun i arg -> mov (dp "rax" (i * void_ptr_size)) (mem_imm mm arg))
+            (fun i arg ->
+              ld_imm all_fns mm arg @ [ pop (dp "r12" (i * void_ptr_size)) ])
             args
+          |> List.concat
         in
-        let load_self = mov rdi (mem_imm mm (ImmVal fn)) in
-        let load_arity = mov rdx (ic arity) in
-        let load_args = mov rsi rax in
-        (* (closure *closure, int64_t *other_args, int64_t N) *)
-        let call_apply = call "apply_closure" in
-        let push_res = push rax in
-        load_size @ create_args_ptr @ store_args
-        @ (load_args :: load_self :: load_arity :: call_apply :: [ push_res ])
-    | AImm i -> ld_imm mm i
+        (* Create and load self to rdi (1) *)
+        let load_self =
+          if List.mem fn.value all_fns then
+            alloc_closure all_fns mm fn [] @ [ pop rdi ]
+          else [ push (mem_imm all_fns mm (ImmVal fn)); pop rdi ]
+        in
+        (* Move argc to rsi (2) *)
+        let load_argc = [ mov rsi (argc |> ic) ] in
+        (* Move argv from r11 to rdx (3) *)
+        let load_argv = [ mov rdx r12 ] in
+        (* Call apply and save *)
+        let call_and_save = [ call "apply_args"; push rax ] in
+        [ push r12; sub rsp (ic 8) ]
+        @ allocate_args_arr @ store_args @ load_self @ load_argc @ load_argv
+        @ [ add rsp (ic 8); pop r12 ]
+        @ call_and_save
+    | AImm i -> ld_imm all_fns mm i
     | Aite (i, t, e) ->
         let compile_block =
           List.fold_left (fun xs x -> xs @ compile_vb mm all_fns x) []
@@ -241,42 +314,17 @@ module Asm = struct
         let cont = mklabel "cont" in
         let jmp_to_cont = [ Jmp (Format.sprintf "cont_%d" if_id) ] in
         let then_branch =
-          compile_block t.lets @ ld_imm mm t.res @ jmp_to_cont
+          compile_block t.lets @ ld_imm all_fns mm t.res @ jmp_to_cont
         in
         let else_branch =
-          mklabel "else" @ compile_block e.lets @ ld_imm mm e.res @ cont
+          mklabel "else" @ compile_block e.lets @ ld_imm all_fns mm e.res @ cont
         in
         let if_part =
-          ld_imm mm i
+          ld_imm all_fns mm i
           @ [ pop rax; cmp rax (ic 0); je (Format.sprintf "else_%d" if_id) ]
         in
         if_part @ then_branch @ else_branch
-    | AClosure (fn, args) ->
-        let arity = List.length args + arity_of_typ fn.typ in
-        let load_size = [ mov rsi (arity * void_ptr_size |> ic) ] in
-        let create_env_ptr = [ call "cm_malloc" ] in
-        let store_args =
-          [ push r9 ]
-          @ (List.mapi
-               (fun i arg ->
-                 [
-                   mov r9 (mem_imm mm arg);
-                   mov (dp "rax" (i * void_ptr_size)) r9;
-                 ])
-               args
-            |> List.concat)
-          @ [ pop r9 ]
-        in
-        let load_argv = [ mov rsi rax ] in
-        let load_argc = [ mov rdx (List.length args |> ic) ] in
-        print_endline (show_ty fn.typ);
-        let load_arity = [ mov rdi (arity |> ic) ] in
-        let load_fn = [ mov rcx (Fndef (Format.sprintf "fn%d" fn.value)) ] in
-        (* int64_t arity, int64_t *argv, int64_t argc, int64_t(fn)() *)
-        let create_closure = [ call "allocate_closure" ] in
-        let push_res = [ push rax ] in
-        load_size @ create_env_ptr @ store_args @ load_argv @ load_argc
-        @ load_arity @ load_fn @ create_closure @ push_res
+    | AClosure (fn, args) -> alloc_closure all_fns mm fn args
     | _ -> failwith "not done"
 
   and compile_vb mm all_fns (vb : anf_val_binding) : instruction list =
@@ -294,6 +342,11 @@ module Asm = struct
         (sum_by collect_expr_size) t.lets + (sum_by collect_expr_size) e.lets
     | _ -> sizeof e.name
 
+  let add_fn_stuff x =
+    let save_base = [ push rbp; mov rbp rsp ] in
+    let ret = [ mov rsp rbp; pop rbp; Ret ] in
+    save_base @ x @ ret
+
   let compile_fn all_fns (fn : anf_fun_binding) =
     let name = Format.sprintf "fn%d" fn.name.value in
     let mm = map_fn_stack fn in
@@ -306,9 +359,8 @@ module Asm = struct
     let body =
       List.fold_left (fun xs x -> xs @ compile_vb mm all_fns x) [] fn.body.lets
     in
-    let res = [ mov rax (mem_imm mm fn.body.res) ] in
-    let save_base = [ push rbp; mov rbp rsp ] in
-    let ret = [ mov rsp rbp; pop rbp; Ret ] in
+    let res = [ mov rax (mem_imm all_fns mm fn.body.res) ] in
+
     let save_args =
       let rec helper lst i instrs =
         match (lst, get_arg_loc i) with
@@ -319,7 +371,42 @@ module Asm = struct
       in
       helper (fn.env @ fn.args) 0 []
     in
-    { name; body = save_base @ sub_esp @ save_args @ body @ res @ ret }
+    { name; body = add_fn_stuff (sub_esp @ save_args @ body @ res) }
+
+  let create_arity_fn fn_defs =
+    let fn_count = List.length fn_defs in
+    let real_fn_count =
+      fn_count + ArityMap.fold (fun _ _ x -> x + 1) std_fns_arity 0
+    in
+    List.mapi
+      (fun i (fn : anf_fun_binding) ->
+        [
+          Label (Format.sprintf "fn_check_%d" i);
+          mov rcx (Fndef (Format.sprintf "fn%d" fn.name.value));
+          cmp rdi rcx;
+          jne (Format.sprintf "fn_check_%d" (i + 1));
+          mov rax (ic (List.length fn.args + List.length fn.env));
+          jmp (Format.sprintf "fn_check_%d" real_fn_count);
+        ])
+      fn_defs
+    @ List.mapi
+        (fun i (k, v) ->
+          [
+            Label (Format.sprintf "fn_check_%d" (i + fn_count));
+            mov rcx (Fndef k);
+            cmp rdi rcx;
+            jne (Format.sprintf "fn_check_%d" (i + fn_count + 1));
+            mov rax (ic v);
+            jmp (Format.sprintf "fn_check_%d" real_fn_count);
+          ])
+        (ArityMap.to_seq std_fns_arity |> List.of_seq)
+    |> List.concat
+    |> fun x ->
+    [ mov rax (ic 0) ]
+    @ x
+    @ [ Label (Format.sprintf "fn_check_%d" real_fn_count) ]
+    |> add_fn_stuff
+    |> fun instr -> { name = "get_arity"; body = instr }
 
   let compile ast =
     let fn_defs, main_fn =
@@ -327,7 +414,9 @@ module Asm = struct
         (function AnfFun fn -> Left fn | AnfVal v -> Right v)
         ast
     in
-    let all_fns = List.map (fun (x : anf_fun_binding) -> x.name) fn_defs in
+    let all_fns =
+      List.map (fun (x : anf_fun_binding) -> x.name.value) fn_defs
+    in
     let main_fn =
       {
         args = [];
@@ -342,7 +431,12 @@ module Asm = struct
       |> compile_fn all_fns
       |> fun x -> { x with name = "main" }
     in
-    main_fn :: List.map (compile_fn all_fns) fn_defs
+    List.iter
+      (fun (x : anf_fun_binding) ->
+        x.name.value |> string_of_int |> print_endline)
+      fn_defs;
+    let get_arity_fn = create_arity_fn fn_defs in
+    main_fn :: get_arity_fn :: List.map (compile_fn all_fns) fn_defs
 end
 
 module AsmRenderer = struct
@@ -351,9 +445,11 @@ module AsmRenderer = struct
   let header =
     {|
 extern print_int
-extern allocate_closure
-extern apply_closure
+extern create_function
+extern apply_args
 extern cm_malloc
+
+extern get_arity ; out
 
 global main
 |}
@@ -369,7 +465,11 @@ global main
     | Displacement (r, _) -> Format.sprintf "qword [%s]" r
     | Fndef fname -> fname
 
+  let not_reg = function Reg _ -> false | _ -> true
+
   let render_instr = function
+    | Mov (src, dst) when not_reg src && not_reg dst ->
+        Format.sprintf "mov r9, %s\n  mov %s, r9" (rm dst) (rm src)
     | Mov (src, dst) -> Format.sprintf "mov %s, %s" (rm src) (rm dst)
     | Movzx (src, dst) -> Format.sprintf "movzx %s, %s" (rm src) (rm dst)
     | Add (src, dst) -> Format.sprintf "add %s, %s" (rm src) (rm dst)
@@ -384,6 +484,7 @@ global main
     | Label m -> Format.sprintf "%s:" m
     | Jmp d -> Format.sprintf "jmp %s" d
     | Je d -> Format.sprintf "je %s" d
+    | Jne d -> Format.sprintf "jne %s" d
     | Setge d -> Format.sprintf "setge %s" (rm d)
     | Setle d -> Format.sprintf "setle %s" (rm d)
     | Setl d -> Format.sprintf "setl %s" (rm d)
