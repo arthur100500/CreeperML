@@ -28,17 +28,13 @@ extern void print_int(const int i)
     printf("%d\n", i);
 }
 
-extern void print_string(const strr *str)
+extern void print_string(const char* s)
 {
-    int len = str->len;
-
-    for (int i = 0; i < len; i++)
-    {
-        printf("%c", str->data[i]);
-    }
+    printf("%s\n", s);
 }
 
 extern cmptr get_arity(cmptr fn_ptr);
+
 cmptr create_function(cmptr fn, cmptr argc, cmptr argv);
 
 extern cmptr cm_malloc(size_t size)
