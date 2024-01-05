@@ -49,6 +49,8 @@ module AnfTypeAst : sig
     | AImm of imm  (** Immidiate value (var or literal)*)
     | ATupleAccess of imm * int
         (** Accessing tuple, tuple is imm, index is int *)
+    | AClosure of tname * imm list
+        (** Allocation of closure with function tname and enviroment env *)
 
   and anf_body = { lets : anf_val_binding list; res : imm }
   (** ANF body: some lets and result of block, used in ite branches and funs *)
@@ -56,7 +58,12 @@ module AnfTypeAst : sig
   and anf_val_binding = { name : tname; e : anf_expr }
   (** ANF Value binding, usual binding like let x = f 3 a *)
 
-  type anf_fun_binding = { name : tname; args : tname list; body : anf_body }
+  type anf_fun_binding = {
+    name : tname;
+    args : tname list;
+    env : tname list;
+    body : anf_body;
+  }
   (** ANF Function binding, let name [args] = [lets] res, all in ANF*)
 
   (** ANF Binding is either ANF Value or ANF Function*)

@@ -19,18 +19,14 @@ module PrettyPrinter = struct
     | LBool b -> if b then "true" else "false"
     | LUnit -> "()"
 
-  let rec join sep = function
-    | h :: [] -> h
-    | h :: t -> Format.sprintf "%s%s%s" h sep (join sep t)
-    | [] -> ""
-
   let rec print_cf_expr st (e : cf_typ_expr) =
     match e.value with
     | CFApply (x, args) ->
-        let args = List.map (print_cf_expr st) args |> join " " in
+        let args = List.map (print_cf_expr st) args |> String.concat " " in
         Format.sprintf "(%s %s)" (print_cf_expr st x) args
     | CFTuple xs ->
-        List.map (print_cf_expr st) xs |> join ", " |> Format.sprintf "(%s)"
+        List.map (print_cf_expr st) xs
+        |> String.concat ", " |> Format.sprintf "(%s)"
     | CFIfElse ite ->
         let i = ite.cond in
         let t = ite.t_body in
@@ -39,13 +35,19 @@ module PrettyPrinter = struct
           (print_cf_expr st t) (print_cf_expr st e)
     | CFValue v -> Format.sprintf "v%d" v
     | CFLiteral l -> show_literal l
+    | CFClosure (i, env) ->
+        let env =
+          String.concat ", "
+          @@ List.map (fun x -> Format.sprintf "%d" x.value) env
+        in
+        Format.sprintf "clsr[%d][%s]" i env
 
   let rec print_lval = function
     | DLvValue v -> Format.sprintf "%d" v
     | DLvAny -> "any"
     | DLvUnit -> "()"
     | DLvTuple xs ->
-        List.map print_lval xs |> join ", " |> Format.sprintf "(%s)"
+        List.map print_lval xs |> String.concat ", " |> Format.sprintf "(%s)"
 
   let rec print_cf_dec st intd = function
     | ValBinding x ->
@@ -98,10 +100,11 @@ module PrettyPrinter = struct
 
   and print_anf_expr st intd = function
     | AApply (x, y) ->
-        let args = List.map (print_imm st) y |> join " " in
+        let args = List.map (print_imm st) y |> String.concat " " in
         Format.sprintf "%s %s" (print_imm st x) args
     | ATuple xs ->
-        List.map (print_imm st) xs |> join ", " |> Format.sprintf "(%s)"
+        List.map (print_imm st) xs
+        |> String.concat ", " |> Format.sprintf "(%s)"
     | Aite (i, t, e) ->
         let i_b = print_imm st i in
         let t_b = print_body st intd t in
@@ -109,6 +112,9 @@ module PrettyPrinter = struct
         Format.sprintf "if %s then%s\n%selse%s" i_b t_b intd f_b
     | ATupleAccess (t, e) -> Format.sprintf "%s[%d]" (print_imm st t) e
     | AImm i -> print_imm st i
+    | AClosure (i, env) ->
+        let env = String.concat ", " @@ List.map (print_imm st) env in
+        Format.sprintf "clsr[v(%d%s)][%s]" i.value (st i.typ) env
 
   and print_anf_dec st intd = function
     | AnfVal x ->
@@ -120,7 +126,7 @@ module PrettyPrinter = struct
         let name, name_type = (x.name.value, st x.name.typ) in
         let args =
           List.map (fun x -> Format.sprintf "(%d%s)" x.value (st x.typ)) x.args
-          |> join " "
+          |> String.concat " "
         in
         let lets = List.fold_left inner "" x.body.lets in
         Format.sprintf "let (%d%s) %s = %s\n%s%s" name name_type args lets intd
@@ -156,7 +162,7 @@ module PrettyPrinter = struct
           intd expr
     | DTuple vs ->
         List.map (print_index_expr st intd) vs
-        |> join ", " |> Format.sprintf "(%s)"
+        |> String.concat ", " |> Format.sprintf "(%s)"
     | DIfElse ite ->
         let i_b = print_index_expr st intd ite.cond in
         let t_b = print_index_expr st intd ite.t_body in
@@ -192,7 +198,7 @@ module PrettyPrinter = struct
     | LvValue v -> v
     | LvTuple vs ->
         List.map (fun x -> Position.Position.value x |> print_llval) vs
-        |> join ", " |> Format.sprintf "(%s)"
+        |> String.concat ", " |> Format.sprintf "(%s)"
 
   let rec print_typ_expr st intd e =
     match e.value with
@@ -213,7 +219,7 @@ module PrettyPrinter = struct
           intd expr
     | TTuple vs ->
         List.map (print_typ_expr st intd) vs
-        |> join ", " |> Format.sprintf "(%s)"
+        |> String.concat ", " |> Format.sprintf "(%s)"
     | TIfElse ite ->
         let i_b = print_typ_expr st intd ite.cond in
         let t_b = print_typ_expr st intd ite.t_body in

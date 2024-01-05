@@ -13,6 +13,7 @@ open Anf.AnfOptimizations
 open Counter.Counter
 open Indexed_ast.IndexedTypeAst
 open Pp.PrettyPrinter
+open Asm
 module NameMap = Map.Make (String)
 
 let pi =
@@ -71,18 +72,34 @@ let operators =
     @@ NameMap.find "print_int" nm;
   ]
 
-let input_program =
-  {|
-  let fac n =
-    let rec helper n acc =
-      if n <= 1 then 
-        acc
-      else
-        helper (n - 1) (n * acc)
-    in
-  helper n 1
+(*let id x = x
+  let plus x y = id x + id y
+  let () = print_int (plus 5 7)*)
 
-  let f a = print_int (fac 5)
+(*
+  let id2 x = x + 2
+  let id x = (id2 x) + (id2 (x + 1))
+  let () = print_int (id 5)
+  *)
+
+(*
+  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
+  let f t = fac t (fun x -> x)
+  
+  let () = print_int (f 5)
+  *)
+
+(*
+  let plus m n k = k (n + m)
+  let mul m n k = k (n * m)
+
+  let () = plus 1 2 (fun x -> mul 10 x print_int)   
+
+*)
+let input_program =
+  {| 
+  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
+  let () = fac 6 print_int
 |}
 
 let () =
@@ -98,11 +115,10 @@ let () =
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
     >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
     |> function
-    | Ok x -> (
-        print_anf_program true x |> print_endline;
-        Codegen.Codegen.top_lvl x |> function
-        | Ok _ -> Codegen.Codegen.dmp_code "toy.ll"
-        | Error err -> print_endline err)
+    | Ok x ->
+        print_anf_program false x |> print_endline;
+        Asm.compile x |> AsmOptimizer.optimize |> AsmRenderer.render
+        |> print_endline
     | Error x -> print_endline x
   else
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
