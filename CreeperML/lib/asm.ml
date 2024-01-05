@@ -218,7 +218,6 @@ module Asm = struct
     in
     let load_argv = [ mov rdx rax ] in
     let load_argc = [ mov rsi (List.length args |> ic) ] in
-    print_endline (show_ty fn.typ);
     let load_fn = [ mov rdi (Fndef fn_name) ] in
     (* function *clsr, cmptr argc, cmptr *argv *)
     let create_closure = [ call "create_function" ] in
@@ -431,10 +430,6 @@ module Asm = struct
       |> compile_fn all_fns
       |> fun x -> { x with name = "main" }
     in
-    List.iter
-      (fun (x : anf_fun_binding) ->
-        x.name.value |> string_of_int |> print_endline)
-      fn_defs;
     let get_arity_fn = create_arity_fn fn_defs in
     main_fn :: get_arity_fn :: List.map (compile_fn all_fns) fn_defs
 end
@@ -513,4 +508,19 @@ module AsmOptimizer = struct
 
   let optimize_fn fn = { fn with body = List.filter meaningful_instr fn.body }
   let optimize = List.map optimize_fn
+end
+
+module Exe = struct
+  let create_newdir path perm =
+    if not (Sys.file_exists path) then Sys.mkdir path perm
+
+  let build_dir = "cm_build"
+
+  let make_exe program =
+    let () = create_newdir build_dir 0o777 in
+    let asm_out = open_out (build_dir ^ "/program.asm") in
+    let () = Printf.fprintf asm_out "%s" (AsmRenderer.render program) in
+    let () = close_out asm_out in
+    let _ = Sys.command "./build.sh" in
+    ()
 end

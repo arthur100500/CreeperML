@@ -117,8 +117,7 @@ let () =
     |> function
     | Ok x ->
         print_anf_program false x |> print_endline;
-        Asm.compile x |> AsmOptimizer.optimize |> AsmRenderer.render
-        |> print_endline
+        Asm.compile x |> AsmOptimizer.optimize |> Exe.make_exe
     | Error x -> print_endline x
   else
     apply_parser input_program >>= apply_infer >>= apply_db_renaming
