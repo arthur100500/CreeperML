@@ -23,7 +23,13 @@ module AnfTypeAst = struct
   and anf_body = { lets : anf_val_binding list; res : imm }
   and anf_val_binding = { name : tname; e : anf_expr }
 
-  type anf_fun_binding = { name : tname; args : tname list; body : anf_body }
+  type anf_fun_binding = {
+    name : tname;
+    args : tname list;
+    env : tname list;
+    body : anf_body;
+  }
+
   type anf_binding = AnfVal of anf_val_binding | AnfFun of anf_fun_binding
   type anf_program = anf_binding list
 end
@@ -141,7 +147,7 @@ module AnfConvert = struct
     let lets = arg_decs @ bindings @ expr_bindings in
     let body = { lets; res } in
     let name = l.name in
-    { name; args = arg_names; body }
+    { name; args = arg_names; env = l.env_vars; body }
 
   let anf_of_cf (p : cf_typ_program) : anf_program =
     let inner xs = function
