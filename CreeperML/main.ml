@@ -5,123 +5,39 @@
 open CreeperML
 open Infer.Infer
 open Parser_interface.ParserInterface
-open Type_ast.TypeAst
-open Type_ast.InferTypeUtils
 open Closure.ClosureConvert
 open Anf.AnfConvert
 open Anf.AnfOptimizations
-open Counter.Counter
 open Indexed_ast.IndexedTypeAst
-open Pp.PrettyPrinter
 open Asm
+open Std
 module NameMap = Map.Make (String)
 
-let pi =
-  let int_const = t_ground t_int |> with_lvls 0 0 in
-  let unit_const = t_ground t_unit |> with_lvls 0 0 in
-  let pi = t_arrow int_const unit_const |> with_lvls 0 0 in
-  ("print_int", pi)
-
-let lr =
-  let int_const = t_ground t_int |> with_lvls 0 0 in
-  let bool_const = t_ground t_bool |> with_lvls 0 0 in
-  let arr = t_arrow int_const bool_const |> with_lvls 0 0 in
-  let lr = t_arrow int_const arr |> with_lvls 0 0 in
-  ("<=", lr)
-
-let mi =
-  let int_const = t_ground t_int |> with_lvls 0 0 in
-  let arr = t_arrow int_const int_const |> with_lvls 0 0 in
-  let mi = t_arrow int_const arr |> with_lvls 0 0 in
-  ("-", mi)
-
-let ml =
-  let int_const = t_ground t_int |> with_lvls 0 0 in
-  let arr = t_arrow int_const int_const |> with_lvls 0 0 in
-  let ml = t_arrow int_const arr |> with_lvls 0 0 in
-  ("*", ml)
-
-let pl =
-  let int_const = t_ground t_int |> with_lvls 0 0 in
-  let arr = t_arrow int_const int_const |> with_lvls 0 0 in
-  let pl = t_arrow int_const arr |> with_lvls 0 0 in
-  ("+", pl)
-
-let typed t a : ('a, ty) typed = { value = a; typ = t }
-
-let nm =
-  let nm = NameMap.empty in
-  let nm = NameMap.add "<=" (cnt_next ()) nm in
-  let nm = NameMap.add "-" (cnt_next ()) nm in
-  let nm = NameMap.add "*" (cnt_next ()) nm in
-  let nm = NameMap.add "+" (cnt_next ()) nm in
-  let nm = NameMap.add "print_int" (cnt_next ()) nm in
-  nm
-
-let operators =
-  [
-    typed (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TBool))
-    @@ NameMap.find "<=" nm;
-    typed (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
-    @@ NameMap.find "-" nm;
-    typed (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
-    @@ NameMap.find "*" nm;
-    typed (TyArrow (TyArrow (TyGround TInt, TyGround TInt), TyGround TInt))
-    @@ NameMap.find "+" nm;
-    typed (TyArrow (TyGround TInt, TyGround TUnit))
-    @@ NameMap.find "print_int" nm;
-  ]
-
-(*let id x = x
-  let plus x y = id x + id y
-  let () = print_int (plus 5 7)*)
-
 (*
-  let id2 x = x + 2
-  let id x = (id2 x) + (id2 (x + 1))
-  let () = print_int (id 5)
-  *)
-
-(*
-  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
-  let f t = fac t (fun x -> x)
-  
-  let () = print_int (f 5)
-  *)
-
-(*
-  let plus m n k = k (n + m)
-  let mul m n k = k (n * m)
-
-  let () = plus 1 2 (fun x -> mul 10 x print_int)   
-
-*)
+   let f a b = let g c d = let h x y = let j z w = a + b + c + d + x + y + z + w in j in h in g
+let () = print_int (f 1 2 3 4 5 6 7 8) *)
 let input_program =
-  {| 
-  let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
-  let () = fac 6 print_int
+  {|
+  let f a b c = let g x y z = x + a + y + z + b + c in g
+  let p1 = f 1 2
+  let p2 = p1 3 4
+  let p3 = p2 5 6
+  let () = print_int p3
 |}
 
 let () =
   let ( >>= ) = Result.bind in
-  let apply_db_renaming p = Ok (index_of_typed nm p) in
-  let apply_closure_convert p = Ok (cf_of_index operators p) in
+  let apply_db_renaming p = Ok (index_of_typed Std.names p) in
+  let apply_closure_convert p = Ok (cf_of_index Std.operators p) in
   let apply_anf_convert p = Ok (anf_of_cf p) in
   let apply_anf_optimizations p = Ok (optimize_moves p) in
-  let apply_infer p = top_infer [ lr; mi; ml; pl; pi ] p in
-  (* let apply_asm p = Ok (Asm.Asm.asm_of_anf p) in *)
+  let apply_infer p = top_infer Std.typeenv p in
   let apply_parser = from_string in
-  if true then
-    apply_parser input_program >>= apply_infer >>= apply_db_renaming
-    >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
-    |> function
-    | Ok x ->
-        print_anf_program false x |> print_endline;
-        Asm.compile x |> AsmOptimizer.optimize |> Exe.make_exe
-    | Error x -> print_endline x
-  else
-    apply_parser input_program >>= apply_infer >>= apply_db_renaming
-    >>= apply_closure_convert
-    |> function
-    | Ok x -> print_cf_program false x |> print_endline
-    | Error x -> print_endline x
+  apply_parser input_program >>= apply_infer >>= apply_db_renaming
+  >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
+  |> function
+  | Ok x ->
+      Pp.PrettyPrinter.print_anf_program false x |> print_endline;
+      Asm.compile x |> AsmOptimizer.optimize
+      |> Build.make_exe "./build.sh" " -b \"./bindings.o\""
+  | Error x -> print_endline x

@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 #define cmptr int64_t // CreeperML pointer
 
 typedef struct str_str
@@ -21,6 +23,7 @@ typedef struct function_str
     cmptr *argv;   // Arguments to be applied
     cmptr argc;    // How many arguments there are already
     cmptr arity;   // How many argument does function take at all
+    cmptr fn_id;   // Id of function in asm code
 } function;
 
 extern void print_int(const int i)
@@ -28,31 +31,28 @@ extern void print_int(const int i)
     printf("%d\n", i);
 }
 
-extern void print_string(const char* s)
+extern void print_string(const strr *str)
 {
-    printf("%s\n", s);
+    int len = str->len;
+
+    for (int i = 0; i < len; i++)
+    {
+        printf("%c", str->data[i]);
+    }
 }
 
-extern cmptr get_arity(cmptr fn_ptr);
-
-cmptr create_function(cmptr fn, cmptr argc, cmptr argv);
+cmptr create_function(cmptr fn, cmptr argc, cmptr argv, cmptr arity, cmptr fn_id);
 
 extern cmptr cm_malloc(size_t size)
 {
     return malloc(size);
 }
 
-cmptr get_arity_wrapper(cmptr fn_ptr)
-{
-    cmptr res = get_arity(fn_ptr);
-    return res;
-}
-
-extern cmptr apply_closure(function *closure, cmptr N)
+extern cmptr call_n(function *closure)
 {
     cmptr *a = closure->argv;
 
-    switch (N)
+    switch (closure->arity)
     {
     case 0:
         return closure->fn();
@@ -91,49 +91,59 @@ extern cmptr apply_closure(function *closure, cmptr N)
     }
 }
 
+void print_function(function *clsr)
+{
+    printf("+-------------------\n");
+    printf("| [%ld]\n", clsr);
+    printf("| fn address: %ld\n", clsr->fn);
+    printf("| fn id : %ld\n", clsr->fn_id);
+    printf("| arity: %ld\n", clsr->arity);
+    printf("| argc: %ld\n| argv: ", clsr->argc);
+    for (int i = 0; i < clsr->argc; i++)
+        printf("%ld ", clsr->argv[i]);
+    printf("\n\n");
+}
+
 cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
 {
-    cmptr arity = get_arity((cmptr)clsr->fn);
+    // Clone closure object to avoid confusion
 
-    argc = clsr->argc + argc;
+    function *clsr_old = clsr;
+    clsr = create_function(clsr_old->fn, clsr_old->argc, clsr_old->argv, clsr_old->arity, clsr_old->fn_id);
+
+    cmptr all_argc = clsr->argc + argc;
 
     // Merge arguments
     cmptr *clsr_argv = clsr->argv;
 
-    clsr->argv = cm_malloc(argc * sizeof(cmptr));
+    clsr->argv = cm_malloc(all_argc * sizeof(cmptr));
 
     for (int i = 0; i < clsr->argc; i++)
         clsr->argv[i] = clsr_argv[i];
 
-    for (int i = clsr->argc; i < argc; i++)
+    for (int i = clsr->argc; i < all_argc; i++)
         clsr->argv[i] = argv[i - clsr->argc];
 
+    cmptr awaited = clsr->arity - clsr->argc;
+    cmptr applied = min((int)argc, (int)awaited);
+    cmptr remaining = argc - awaited;
+
+    clsr->argc += applied;
+
     // Apply arguments
-    if (argc > arity)
+    if (remaining > 0)
     {
-        cmptr res = apply_closure(clsr, arity);
+        function *res = call_n(clsr);
 
-        for (int i = arity; i < argc; i++)
-        {
-            argv[i - arity] = argv[i];
-        }
+        for (int i = 0; i < remaining; i++)
+            argv[i] = argv[i + applied];
 
-        cmptr clsr_res = create_function(res, 0, NULL);
-
-        cmptr app_res = apply_args(clsr_res, argc - arity, argv);
-
-        return app_res;
+        return apply_args(res, remaining, argv);
     }
 
-    if (argc == arity)
+    if (remaining == 0)
     {
-        cmptr res = apply_closure(clsr, arity);
-
-        if (get_arity(res) != 0)
-        {
-            cmptr clsr_res = create_function(res, 0, NULL);
-            return res;
-        }
+        cmptr res = call_n(clsr);
 
         return res;
     }
@@ -141,15 +151,15 @@ cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
     return clsr;
 }
 
-cmptr create_function(cmptr fn, cmptr argc, cmptr argv)
+cmptr create_function(cmptr fn, cmptr argc, cmptr argv, cmptr arity, cmptr fn_id)
 {
-    cmptr arity = get_arity(fn);
 
     function *clsr = (function *)cm_malloc(sizeof(function));
     clsr->arity = arity; // Summary size of all arguments
     clsr->fn = fn;
     clsr->argv = argv;
     clsr->argc = argc;
+    clsr->fn_id = fn_id;
 
     return clsr;
 }
