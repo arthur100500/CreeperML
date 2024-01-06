@@ -23,6 +23,7 @@ module Asm = struct
     | Add of storage * storage
     | Sub of storage * storage
     | Imul of storage * storage
+    | Idiv of storage
     | Call of string
     | Push of storage
     | Pop of storage
@@ -38,6 +39,7 @@ module Asm = struct
     | Setl of storage
     | Sete of storage
     | Label of string (* bad *)
+    | Cqo
 
   type fn = { name : string; body : instruction list }
 
@@ -57,6 +59,7 @@ module Asm = struct
   let add r1 r2 = Add (r1, r2)
   let imul r1 r2 = Imul (r1, r2)
   let sub r1 r2 = Sub (r1, r2)
+  let idiv r = Idiv r
   let push l = Push l
   let ic i = IntConst i
   let mov r1 r2 = Mov (r1, r2)
@@ -69,6 +72,7 @@ module Asm = struct
   let cmp r1 r2 = Cmp (r1, r2)
   let call r = Call r
   let je x = Je x
+  let cqo = Cqo
   let dp reg d = Displacement (reg, d)
 
   module IMap = Map.Make (Int)
@@ -143,7 +147,7 @@ module Asm = struct
     | 1 -> [ sub rdi rsi; mov rax rdi ] (* - *)
     | 2 -> [ add rdi rsi; mov rax rdi ] (* + *)
     | 3 -> [ imul rdi rsi; mov rax rdi ] (* * *)
-    | 4 -> failwith " \"/\" not done" (* / *)
+    | 4 -> [ mov rax rdi; cqo; idiv rsi ] (* / *)
     | 5 -> [ cmp rdi rsi; setle al; movzx eax al ] (* <= *)
     | 6 -> [ cmp rdi rsi; setl al; movzx eax al ] (* < *)
     | 7 -> [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
@@ -159,7 +163,8 @@ module Asm = struct
     | LBool true -> 1
     | LBool false -> 0
     | LUnit -> 0
-    | _ -> failwith "not done"
+    | LString _ -> failwith "strings are not supported yet"
+    | LFloat _ -> failwith "floats are not supported yet"
 
   let preserve_reg reg prog =
     [ push reg; sub rsp (ic 8) ] >>> prog >>> [ add rsp (ic 8); pop reg ]
@@ -221,11 +226,6 @@ module Asm = struct
         compile_push_args cinfo args >>> compile_fn_call fn.value args
     | AApply (ImmVal fn, args) ->
         let argc = List.length args in
-        (* Alloc array and push *)
-        (* Load self to rdi *)
-        (* Load argc to rsi *)
-        (* Pop argv to rdx*)
-        (* Call apply *)
         let alloc_arr =
           [ mov rdi (argc * ptr_size |> ic); call "cm_malloc"; mov r12 rax ]
         in
@@ -284,7 +284,7 @@ module Asm = struct
             push (dp "r9" (index * ptr_size));
             pop rax;
           ]
-    | _ -> failwith "123"
+    | AApply (ImmLit _, _) -> failwith "Can't apply literal"
 
   and compile_vb cinfo (vb : anf_val_binding) : instruction list =
     let store =
@@ -350,21 +350,22 @@ module Asm = struct
         ast
     in
     let l = List.length in
+    let arities =
+      List.map
+        (fun (fn : anf_fun_binding) -> (fn.name.value, l fn.args + l fn.env))
+        fn_defs
+      |> List.to_seq
+      |> Seq.append
+           (Std.operators
+           |> List.map (fun x -> (x.value, arity_of x.typ))
+           |> List.to_seq)
+      |> IMap.of_seq
+    in
     let cinfo =
       {
         functions = List.map (fun (x : anf_fun_binding) -> x.name.value) fn_defs;
         memory = IMap.empty;
-        arities =
-          List.map
-            (fun (fn : anf_fun_binding) ->
-              (fn.name.value, l fn.args + l fn.env))
-            fn_defs
-          |> List.to_seq
-          |> Seq.append
-               (Std.operators
-               |> List.map (fun x -> (x.value, arity_of x.typ))
-               |> List.to_seq)
-          |> IMap.of_seq;
+        arities;
       }
     in
     let main_fn =
@@ -410,6 +411,7 @@ global main
     | Sub (src, dst) -> Format.sprintf "sub %s, %s" (rm src) (rm dst)
     | Cmp (src, dst) -> Format.sprintf "cmp %s, %s" (rm src) (rm dst)
     | Imul (src, dst) -> Format.sprintf "imul %s, %s" (rm src) (rm dst)
+    | Idiv r -> Format.sprintf "idiv %s" (rm r)
     | Call fn -> Format.sprintf "call %s" fn
     | Push src -> rm src |> Format.sprintf "push %s"
     | Pop dst -> rm dst |> Format.sprintf "pop %s"
@@ -424,6 +426,7 @@ global main
     | Setl d -> Format.sprintf "setl %s" (rm d)
     | Setg d -> Format.sprintf "setg %s" (rm d)
     | Sete d -> Format.sprintf "sete %s" (rm d)
+    | Cqo -> "cqo"
 
   let render_instrs il =
     let add_offset s = Format.sprintf "  %s" s in
