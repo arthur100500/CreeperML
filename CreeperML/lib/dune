@@ -19,6 +19,12 @@
  (action
   (run gcc -shared %{deps} -o %{targets})))
 
+(rule
+ (deps bindings.c)
+ (targets bindings.o)
+ (action
+  (run gcc -c %{deps} -o %{targets} -w)))
+
 (library
  (name CreeperML)
  (public_name CreeperML)
