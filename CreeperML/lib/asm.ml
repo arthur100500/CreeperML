@@ -4,6 +4,7 @@ module Asm = struct
   open Parser_ast.ParserAst
   open Counter
   open Std
+  open Monad.Result
 
   let reg_size = 16
   let ptr_size = 8
@@ -86,7 +87,22 @@ module Asm = struct
 
   let ( >> ) x y = x @ [ y ]
   let ( >>> ) = ( @ )
+  let ( =>> ) x y = x >>| fun x -> x @ [ y ]
+  let ( =>>> ) x y = x >>| fun x -> x @ y
+  let ( ->> ) x y = y >>| fun y -> x @ [ y ]
+  let ( ->>> ) x y = y >>| fun y -> x @ y
+
+  let ( |>> ) x y =
+    x >>= fun x ->
+    y >>| fun y -> x @ [ y ]
+
+  let ( |>>> ) x y : ('a list, 'b) Result.t =
+    x >>= fun x ->
+    y >>| fun y -> x @ y
+
+  let lst x = [ x ]
   let rev_concat x = List.rev x |> List.concat
+  let concat = List.concat
 
   let rec arity_of t =
     match t with TyArrow (_, t2) -> 1 + arity_of t2 | _ -> 0
@@ -144,27 +160,27 @@ module Asm = struct
     let stack_fix = [ add rsp (stack_len |> align16 |> ic) ] in
     match fn with
     (* Inline function call here *)
-    | 1 -> [ sub rdi rsi; mov rax rdi ] (* - *)
-    | 2 -> [ add rdi rsi; mov rax rdi ] (* + *)
-    | 3 -> [ imul rdi rsi; mov rax rdi ] (* * *)
-    | 4 -> [ mov rax rdi; cqo; idiv rsi ] (* / *)
-    | 5 -> [ cmp rdi rsi; setle al; movzx eax al ] (* <= *)
-    | 6 -> [ cmp rdi rsi; setl al; movzx eax al ] (* < *)
-    | 7 -> [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
-    | 8 -> [ cmp rdi rsi; setg al; movzx eax al ] (* > *)
-    | 9 -> [ cmp rdi rsi; setge al; movzx eax al ] (* >= *)
-    | x when x < 19 -> failwith "float point functions not done"
-    | 19 -> [ call "print_int" ] >>> stack_fix (* print int )*)
-    | other -> [ call (Format.sprintf "fn%d" other) ] >>> stack_fix
+    | 1 -> return [ sub rdi rsi; mov rax rdi ] (* - *)
+    | 2 -> return [ add rdi rsi; mov rax rdi ] (* + *)
+    | 3 -> return [ imul rdi rsi; mov rax rdi ] (* * *)
+    | 4 -> return [ mov rax rdi; cqo; idiv rsi ] (* / *)
+    | 5 -> return [ cmp rdi rsi; setle al; movzx eax al ] (* <= *)
+    | 6 -> return [ cmp rdi rsi; setl al; movzx eax al ] (* < *)
+    | 7 -> return [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
+    | 8 -> return [ cmp rdi rsi; setg al; movzx eax al ] (* > *)
+    | 9 -> return [ cmp rdi rsi; setge al; movzx eax al ] (* >= *)
+    | x when x < 19 -> error "Compiler error: Float point functions not done"
+    | 19 -> [ call "print_int" ] >>> stack_fix |> return (* print int )*)
+    | other -> [ call (Format.sprintf "fn%d" other) ] >>> stack_fix |> return
 
   let int_of_literal x =
     match x.value with
-    | LInt x -> x
-    | LBool true -> 1
-    | LBool false -> 0
-    | LUnit -> 0
-    | LString _ -> failwith "strings are not supported yet"
-    | LFloat _ -> failwith "floats are not supported yet"
+    | LInt x -> return x
+    | LBool true -> return 1
+    | LBool false -> return 0
+    | LUnit -> return 0
+    | LString _ -> error "Compiler error: Strings are not supported yet"
+    | LFloat _ -> error "Compiler error: Floats are not supported yet"
 
   let preserve_reg reg prog =
     [ push reg; sub rsp (ic 8) ] >>> prog >>> [ add rsp (ic 8); pop reg ]
@@ -172,9 +188,12 @@ module Asm = struct
   let mem_imm cinfo imm =
     match imm with
     | ImmVal v when List.mem v.value cinfo.functions ->
-        Fndef (Format.sprintf "fn%d" v.value)
-    | ImmVal x -> IMap.find x.value cinfo.memory
-    | ImmLit l -> int_of_literal l |> ic
+        Fndef (Format.sprintf "fn%d" v.value) |> return
+    | ImmVal x -> (
+        match IMap.find_opt x.value cinfo.memory with
+        | Some x -> return x
+        | None -> error "Compiler error: Could not find variable in memory")
+    | ImmLit l -> int_of_literal l >>| ic
 
   let alloc_closure cinfo fn args =
     let arity = IMap.find fn.value cinfo.arities in
@@ -186,9 +205,11 @@ module Asm = struct
     let load_size = mov rdi (arity * ptr_size |> ic) in
     let create_env_ptr = [ call "cm_malloc"; mov r12 rax ] in
     let inner i arg =
-      [ mov r9 (mem_imm cinfo arg); mov (dp "r12" (i * ptr_size)) r9 ]
+      mem_imm cinfo arg >>| mov r9 >>| lst =>> mov (dp "r12" (i * ptr_size)) r9
     in
-    let store_args = preserve_reg r9 (List.mapi inner args |> List.concat) in
+    let* store_args =
+      preserve_reg r9 |<< (monadic_mapi args inner >>| List.concat)
+    in
     let load_argv = mov rdx r12 in
     let load_argc = mov rsi (List.length args |> ic) in
     let load_fn = mov rdi (Fndef fn_name) in
@@ -198,74 +219,74 @@ module Asm = struct
     preserve_reg r12
       ([ load_size ] >>> create_env_ptr >>> store_args >> load_argv >> load_argc
      >> load_fn >> load_arity >> load_fn_id >> create_closure)
+    |> return
 
   let ld_imm cinfo imm =
     match imm with
     | ImmVal v when List.mem v.value cinfo.functions -> alloc_closure cinfo v []
     | ImmVal v when IMap.mem v.value std_functions -> alloc_closure cinfo v []
-    | _ -> mem_imm cinfo imm |> fun x -> [ mov rax x ]
+    | _ -> mem_imm cinfo imm >>| fun x -> [ mov rax x ]
 
   let fix_align_16 instructions size =
     instructions @ [ sub rsp (Int.rem size 16 |> ic) ]
 
   let compile_push_args cinfo (args : imm list) =
     let inner (xs, arg_i, s) arg =
-      let loc = mem_imm cinfo arg in
+      let* loc = mem_imm cinfo arg in
       match get_arg_loc arg_i with
-      | Some reg -> (xs @ [ Mov (reg, loc) ], arg_i + 1, s)
-      | None -> (xs @ ld_imm cinfo arg, arg_i + 1, s + sizeof arg)
+      | Some reg -> (xs @ [ Mov (reg, loc) ], arg_i + 1, s) |> return
+      | None ->
+          let* arg_load = ld_imm cinfo arg in
+          (xs @ arg_load, arg_i + 1, s + sizeof arg) |> return
     in
-    let instr, _, size = List.fold_left inner ([], 0, 0) args in
-    fix_align_16 instr size
+    let* instr, _, size = monadic_fold inner ([], 0, 0) args in
+    fix_align_16 instr size |> return
 
   let rec compile_expr cinfo (e : anf_expr) =
     match e with
     | AApply (ImmVal fn, args)
       when IMap.mem fn.value std_functions
            && List.length args == arity_of fn.typ ->
-        compile_push_args cinfo args >>> compile_fn_call fn.value args
+        compile_push_args cinfo args |>>> compile_fn_call fn.value args
     | AApply (ImmVal fn, args) ->
         let argc = List.length args in
         let alloc_arr =
           [ mov rdi (argc * ptr_size |> ic); call "cm_malloc"; mov r12 rax ]
         in
         let store_arg i arg =
-          ld_imm cinfo arg >> mov (dp "r12" (i * ptr_size)) rax
+          ld_imm cinfo arg =>> mov (dp "r12" (i * ptr_size)) rax
         in
-        let store_args = List.mapi store_arg args |> List.concat in
+        let* store_args = monadic_mapi args store_arg >>| concat in
         let push_array = [ push r12; sub rsp (ic 8) ] in
-        let load_self =
+        let* load_self =
           if List.mem fn.value cinfo.functions then
-            alloc_closure cinfo fn [] >> mov rdi rax
-          else [ mov rax (mem_imm cinfo (ImmVal fn)); mov rdi rax ]
+            alloc_closure cinfo fn [] =>> mov rdi rax
+          else mem_imm cinfo (ImmVal fn) >>| mov rax >>| lst =>> mov rdi rax
         in
         let load_argc = mov rsi (argc |> ic) in
         let pop_argv = [ add rsp (ic 8); pop rdx ] in
         let call_apply = call "apply_args" in
         alloc_arr >>> store_args >>> push_array >>> load_self >> load_argc
-        >>> pop_argv >> call_apply
+        >>> pop_argv >> call_apply |> return
     | AImm i -> ld_imm cinfo i
     | Aite (i, t, e) ->
-        let compile_block x =
-          List.fold_left (fun xs x -> compile_vb cinfo x :: xs) [] x
-          |> rev_concat
-        in
+        let compile_block x = monadic_map x (compile_vb cinfo) >>| concat in
         let if_id = Counter.cnt_next () in
         let mklabel name = Label (Format.sprintf "%s_%d" name if_id) in
         let cont = mklabel "cont" in
         let jmp_to_cont = Jmp (Format.sprintf "cont_%d" if_id) in
         let then_branch =
-          compile_block t.lets >>> ld_imm cinfo t.res >> jmp_to_cont
+          compile_block t.lets |>>> ld_imm cinfo t.res =>> jmp_to_cont
         in
         let else_branch =
-          [ mklabel "else" ]
-          >>> compile_block e.lets >>> ld_imm cinfo e.res >> cont
+          [ mklabel "else" ] ->>> compile_block e.lets
+          |>>> ld_imm cinfo e.res =>> cont
         in
-        let if_part =
+        let* if_part =
           ld_imm cinfo i
-          >>> [ cmp rax (ic 0); je (Format.sprintf "else_%d" if_id) ]
+          =>>> [ cmp rax (ic 0); je (Format.sprintf "else_%d" if_id) ]
         in
-        if_part >>> then_branch >>> else_branch
+        if_part ->>> then_branch |>>> else_branch
     | AClosure (fn, args) -> alloc_closure cinfo fn args
     | ATuple elements ->
         let argc = List.length elements in
@@ -273,27 +294,25 @@ module Asm = struct
           [ mov rdi (argc * ptr_size |> ic); call "cm_malloc"; mov r12 rax ]
         in
         let inner i arg =
-          ld_imm cinfo arg >> mov (dp "r12" (i * ptr_size)) rax
+          ld_imm cinfo arg =>> mov (dp "r12" (i * ptr_size)) rax
         in
-        let store_elements = List.mapi inner elements |> List.concat in
-        preserve_reg r12 (alloc_tuple >>> store_elements >> mov rax r12)
+        let store_elements = monadic_mapi elements inner >>| concat in
+        preserve_reg r12 |<< (alloc_tuple ->>> store_elements =>> mov rax r12)
     | ATupleAccess (tuple, index) ->
         preserve_reg r9
-          [
-            mov r9 (mem_imm cinfo tuple);
-            push (dp "r9" (index * ptr_size));
-            pop rax;
-          ]
-    | AApply (ImmLit _, _) -> failwith "Can't apply literal"
+        |<< (mem_imm cinfo tuple >>| mov r9 >>| lst)
+        =>> push (dp "r9" (index * ptr_size))
+        =>> pop rax
+    | AApply (ImmLit _, _) -> error "Compiler error: Cannot apply literal"
 
-  and compile_vb cinfo (vb : anf_val_binding) : instruction list =
+  and compile_vb cinfo (vb : anf_val_binding) =
     let store =
       match vb.name.typ with
       | TyGround TUnit -> []
       | _ -> IMap.find vb.name.value cinfo.memory |> fun x -> [ mov x rax ]
     in
-    let expr = compile_expr cinfo vb.e in
-    expr >>> store
+    let* expr = compile_expr cinfo vb.e in
+    expr >>> store |> return
 
   let rec collect_expr_size (e : anf_val_binding) =
     match e.e with
@@ -316,11 +335,15 @@ module Asm = struct
       + sizeof fn.body.res
     in
     let sub_esp = sub rsp (stack_len + reg_size |> align16 |> ic) in
-    let body =
-      List.fold_left (fun xs x -> compile_vb cinfo x :: xs) [] fn.body.lets
-      |> rev_concat
+    let* body =
+      List.fold_left
+        (fun xs x ->
+          xs >>= fun xs ->
+          compile_vb cinfo x >>| fun x -> x :: xs)
+        (Ok []) fn.body.lets
+      >>| rev_concat
     in
-    let res = mov rax (mem_imm cinfo fn.body.res) in
+    let* res = mem_imm cinfo fn.body.res >>| mov rax in
     let save_args =
       let rec helper lst i instrs =
         match (lst, get_arg_loc i) with
@@ -332,7 +355,8 @@ module Asm = struct
       in
       helper (fn.env >>> fn.args) 0 []
     in
-    { name; body = add_fn_stuff ([ sub_esp ] >>> save_args >>> body >> res) }
+    return
+      { name; body = add_fn_stuff ([ sub_esp ] >>> save_args >>> body >> res) }
 
   let main_fn body =
     {
@@ -343,7 +367,7 @@ module Asm = struct
         { lets = body; res = ImmLit { value = LInt 0; typ = TyGround TInt } };
     }
 
-  let compile ast =
+  let compile ast : (fn list, string) Result.t =
     let fn_defs, main_fn_body =
       List.partition_map
         (function AnfFun fn -> Left fn | AnfVal v -> Right v)
@@ -368,11 +392,12 @@ module Asm = struct
         arities;
       }
     in
-    let main_fn =
-      main_fn main_fn_body |> compile_fn cinfo |> fun x ->
+    let* main_fn =
+      main_fn main_fn_body |> compile_fn cinfo >>| fun x ->
       { x with name = "main" }
     in
-    main_fn :: List.map (compile_fn cinfo) fn_defs
+    let* all_fns = monadic_map fn_defs (compile_fn cinfo) in
+    main_fn :: all_fns |> return
 end
 
 module AsmRenderer = struct
