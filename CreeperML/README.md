@@ -1,12 +1,12 @@
  # CreeperML ![CI that doesn't work](https://github.com/tozarin/CreeperML/actions/workflows/build.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/Tozarin/CreeperML/badge.svg?branch=main)](https://coveralls.io/github/Tozarin/CreeperML?branch=main)
 
-<span style="color:green"> ___     ___        _____                               __  __ _</span>\
-<span style="color:green">|   |   |   |      / ____|                             |  \/  | |</span>\
-<span style="color:green">|___|___|___|     | |     _ __ ___  ___ _ __   ___ _ __| \  / | |</span>\
-<span style="color:green">   _|   |_        | |    | '__/ _ \/ _ \ '_ \ / _ \ '__| |\/| | |</span>\
-<span style="color:green">  |  ___  |       | |____| | |  __/  __/ |_) |  __/ |  | |  | | |____</span>\
-<span style="color:green">  |_|   |_|        \_____|_|  \___|\___| .__/ \___|_|  |_|  |_|______|</span>\
-<span style="color:green">                                       |_|</span>\
+<code style="color:green"> ___     ___        _____                               __  __ _</code>\
+<code style="color:green">|   |   |   |      / ____|                             |  \/  | |</code>\
+<code style="color:green">|___|___|___|     | |     _ __ ___  ___ _ __   ___ _ __| \  / | |</code>\
+<code style="color:green">   _|   |_        | |    | '__/ _ \/ _ \ '_ \ / _ \ '__| |\/| | |</code>\
+<code style="color:green">  |  ___  |       | |____| | |  __/  __/ |_) |  __/ |  | |  | | |____</code>\
+<code style="color:green">  |_|   |_|        \_____|_|  \___|\___| .__/ \___|_|  |_|  |_|______|</code>\
+<code style="color:green">                                       |_|</code>\
 
 
 ## About compiler
