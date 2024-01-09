@@ -16,9 +16,9 @@ let () =
   let apply_anf_optimizations p = Ok (AnfOptimizations.optimize_moves p) in
   let apply_infer p = top_infer Std.typeenv p in
   program >>= apply_infer >>= apply_db_renaming >>= apply_closure_convert
-  >>= apply_anf_convert >>= apply_anf_optimizations
+  >>= apply_anf_convert >>= apply_anf_optimizations >>= Asm.compile
   |> function
   | Ok x ->
-      Asm.compile x |> AsmOptimizer.optimize
+      AsmOptimizer.optimize x
       |> Build.make_exe "../build.sh" " -d -b \"../../lib/bindings.o\""
   | Error x -> print_endline x

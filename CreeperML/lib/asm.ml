@@ -89,14 +89,9 @@ module Asm = struct
   let ( >>> ) = ( @ )
   let ( =>> ) x y = x >>| fun x -> x @ [ y ]
   let ( =>>> ) x y = x >>| fun x -> x @ y
-  let ( ->> ) x y = y >>| fun y -> x @ [ y ]
   let ( ->>> ) x y = y >>| fun y -> x @ y
 
-  let ( |>> ) x y =
-    x >>= fun x ->
-    y >>| fun y -> x @ [ y ]
-
-  let ( |>>> ) x y : ('a list, 'b) Result.t =
+  let ( |>>> ) x y =
     x >>= fun x ->
     y >>| fun y -> x @ y
 
@@ -300,9 +295,9 @@ module Asm = struct
         preserve_reg r12 |<< (alloc_tuple ->>> store_elements =>> mov rax r12)
     | ATupleAccess (tuple, index) ->
         preserve_reg r9
-        |<< (mem_imm cinfo tuple >>| mov r9 >>| lst)
-        =>> push (dp "r9" (index * ptr_size))
-        =>> pop rax
+        |<< (mem_imm cinfo tuple >>| mov r9 >>| lst
+            =>> push (dp "r9" (index * ptr_size))
+            =>> pop rax)
     | AApply (ImmLit _, _) -> error "Compiler error: Cannot apply literal"
 
   and compile_vb cinfo (vb : anf_val_binding) =

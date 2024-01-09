@@ -18,11 +18,15 @@ module NameMap = Map.Make (String)
 let () = print_int (f 1 2 3 4 5 6 7 8) *)
 let input_program =
   {|
-  let f a b c = let g x y z = x + a + y + z + b + c in g
-  let p1 = f 1 2
-  let p2 = p1 3 4
-  let p3 = p2 5 6
-  let () = print_int p3
+  let mul a b k = k (a * b)
+  let forward x k = k x
+  let apply f x = f x
+  let add a b k = k (a + b)
+  let id x = x
+  let () = mul 3 4 (fun x ->
+  add x 5 (fun x ->
+  forward (apply id x) print_int
+  ))
 |}
 
 let () =
@@ -35,9 +39,9 @@ let () =
   let apply_parser = from_string in
   apply_parser input_program >>= apply_infer >>= apply_db_renaming
   >>= apply_closure_convert >>= apply_anf_convert >>= apply_anf_optimizations
+  >>= Asm.compile
   |> function
   | Ok x ->
-      Pp.PrettyPrinter.print_anf_program false x |> print_endline;
-      Asm.compile x |> AsmOptimizer.optimize
+      AsmOptimizer.optimize x
       |> Build.make_exe "./build.sh" " -b \"./bindings.o\""
   | Error x -> print_endline x

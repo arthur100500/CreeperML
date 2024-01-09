@@ -26,13 +26,13 @@ module Result = struct
       l (return [])
 
   let monadic_mapi l f =
-    List.fold_right
-      (fun e (acc, index) ->
+    List.fold_left
+      (fun (acc, index) e ->
         ( (let* acc = acc in
            f index e >>| fun e -> e :: acc),
           index + 1 ))
-      l
       (return [], 0)
+      l
     |> fst
 
   let monadic_fold f initial lst =
