@@ -16,7 +16,7 @@
 (library
  (name CreeperML)
  (public_name CreeperML)
- (libraries menhirLib llvm)
+ (libraries menhirLib)
  (flags :standard -color always -safe-string -warn-error -a+8 -w -50)
  (preprocess
   (pps ppx_expect ppx_deriving.show ppx_compare))
