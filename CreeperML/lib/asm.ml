@@ -96,7 +96,6 @@ module Asm = struct
     y >>| fun y -> x @ y
 
   let lst x = [ x ]
-  let rev_concat x = List.rev x |> List.concat
   let concat = List.concat
 
   let rec arity_of t =
@@ -330,14 +329,7 @@ module Asm = struct
       + sizeof fn.body.res
     in
     let sub_esp = sub rsp (stack_len + reg_size |> align16 |> ic) in
-    let* body =
-      List.fold_left
-        (fun xs x ->
-          xs >>= fun xs ->
-          compile_vb cinfo x >>| fun x -> x :: xs)
-        (Ok []) fn.body.lets
-      >>| rev_concat
-    in
+    let* body = monadic_map fn.body.lets (compile_vb cinfo) >>| concat in
     let* res = mem_imm cinfo fn.body.res >>| mov rax in
     let save_args =
       let rec helper lst i instrs =
