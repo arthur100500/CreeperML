@@ -54,7 +54,7 @@ module ClosureConvert = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Indexed_ast.IndexedTypeAst
-  open Counter.Counter
+  open Counter
 
   module TypedName = struct
     type t = (int, ty) typed
@@ -154,7 +154,7 @@ module ClosureConvert = struct
           let new_lets = List.filter_map filter_vb vb.cf_body.cf_lets in
           Some { vb with cf_body = { vb.cf_body with cf_lets = new_lets } }
     in
-    let rec filter_fb (fb : cf_fun_let_binding) =
+    let filter_fb (fb : cf_fun_let_binding) =
       let new_lets = List.filter_map filter_vb fb.b.cf_lets in
       { fb with b = { fb.b with cf_lets = new_lets } }
     in
@@ -191,14 +191,14 @@ module ClosureConvert = struct
         let res_typed = res |> typed e.typ in
         (i_decs @ t_decs @ e_decs, res_typed)
     | DFun f ->
-        let rec expr_of_lval l =
-          match (l.value, l.typ) with
-          | DLvValue v, _ -> CFValue v |> typed l.typ
-          | DLvTuple xs, TyTuple ts ->
-              let xts = List.map2 typed ts xs in
-              CFTuple (List.map expr_of_lval xts) |> typed l.typ
-          | _ -> CFLiteral LUnit |> typed l.typ
-        in
+        (* let rec expr_of_lval l =
+             match (l.value, l.typ) with
+             | DLvValue v, _ -> CFValue v |> typed l.typ
+             | DLvTuple xs, TyTuple ts ->
+                 let xts = List.map2 typed ts xs in
+                 CFTuple (List.map expr_of_lval xts) |> typed l.typ
+             | _ -> CFLiteral LUnit |> typed l.typ
+           in *)
         let rec convert_fun f args =
           match (f.b.lets, f.b.expr.value) with
           | [], DFun f -> convert_fun f (args @ [ f.lvalue ])

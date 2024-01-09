@@ -4,7 +4,7 @@
 
 module Std = struct
   module Names = struct
-    open Counter.Counter
+    open Counter
     module NameMap = Map.Make (String)
 
     let add name = NameMap.add name (cnt_next ())
@@ -34,26 +34,21 @@ module Std = struct
           "print_int";
           "print_string";
         ]
-
-    let find i =
-      NameMap.bindings names
-      |> List.filter (fun (_, ix) -> Int.equal i ix)
-      |> List.hd
   end
 
   module Inferencer = struct
-    open Counter.Counter
-    open Type_ast.TypeAst
     open Type_ast.InferTypeUtils
 
+    let top_lvl = with_lvls 0 0
+
     (* *)
-    let int_const = t_ground t_int |> with_lvls 0 0
-    let unit_const = t_ground t_unit |> with_lvls 0 0
-    let bool_const = t_ground t_bool |> with_lvls 0 0
-    let float_const = t_ground t_float |> with_lvls 0 0
-    let string_const = t_ground t_string |> with_lvls 0 0
-    let arr l r = t_arrow l r |> with_lvls 0 0
-    let triple fst snd rez = arr snd rez |> t_arrow fst |> with_lvls 0 0
+    let int_const = t_ground t_int |> top_lvl
+    let unit_const = t_ground t_unit |> top_lvl
+    let bool_const = t_ground t_bool |> top_lvl
+    let float_const = t_ground t_float |> top_lvl
+    let string_const = t_ground t_string |> top_lvl
+    let arr l r = t_arrow l r |> top_lvl
+    let triple fst snd rez = arr snd rez |> t_arrow fst |> top_lvl
 
     (* int operations *)
     let sub = ("-", triple int_const int_const int_const)
@@ -64,7 +59,7 @@ module Std = struct
     (* int bool *)
     let le = ("<=", triple int_const int_const bool_const)
     let less = ("<", triple int_const int_const bool_const)
-    let eq = ("=", triple int_const int_const bool_const)
+    let eq = ("==", triple int_const int_const bool_const)
     let gr = (">", triple int_const int_const bool_const)
     let ge = (">=", triple int_const int_const bool_const)
 
@@ -111,7 +106,6 @@ module Std = struct
   end
 
   module Operators = struct
-    open Counter.Counter
     open Type_ast.TypeAst
 
     let typed t a : ('a, ty) typed = { value = a; typ = t }
@@ -126,44 +120,34 @@ module Std = struct
     let triple fst snd rez = TyArrow (TyArrow (fst, snd), rez)
 
     (* int operations *)
-    let sub = typed (triple int_const int_const int_const) (third_next ())
-    let add = typed (triple int_const int_const int_const) (third_next ())
-    let mul = typed (triple int_const int_const int_const) (third_next ())
-    let div = typed (triple int_const int_const int_const) (third_next ())
+    let sub = typed (triple int_const int_const int_const) 1
+    let add = typed (triple int_const int_const int_const) 2
+    let mul = typed (triple int_const int_const int_const) 3
+    let div = typed (triple int_const int_const int_const) 4
 
     (* int bool *)
-    let le = typed (triple int_const int_const bool_const) (third_next ())
-    let less = typed (triple int_const int_const bool_const) (third_next ())
-    let eq = typed (triple int_const int_const bool_const) (third_next ())
-    let gr = typed (triple int_const int_const bool_const) (third_next ())
-    let ge = typed (triple int_const int_const bool_const) (third_next ())
+    let le = typed (triple int_const int_const bool_const) 5
+    let less = typed (triple int_const int_const bool_const) 6
+    let eq = typed (triple int_const int_const bool_const) 7
+    let gr = typed (triple int_const int_const bool_const) 8
+    let ge = typed (triple int_const int_const bool_const) 9
 
     (* float operations *)
-    let fsub =
-      typed (triple float_const float_const float_const) (third_next ())
-
-    let fadd =
-      typed (triple float_const float_const float_const) (third_next ())
-
-    let fmul =
-      typed (triple float_const float_const float_const) (third_next ())
-
-    let fdiv =
-      typed (triple float_const float_const float_const) (third_next ())
+    let fsub = typed (triple float_const float_const float_const) 10
+    let fadd = typed (triple float_const float_const float_const) 11
+    let fmul = typed (triple float_const float_const float_const) 12
+    let fdiv = typed (triple float_const float_const float_const) 13
 
     (* float bool*)
-    let fle = typed (triple float_const float_const bool_const) (third_next ())
-
-    let fless =
-      typed (triple float_const float_const bool_const) (third_next ())
-
-    let feq = typed (triple float_const float_const bool_const) (third_next ())
-    let fgr = typed (triple float_const float_const bool_const) (third_next ())
-    let fge = typed (triple float_const float_const bool_const) (third_next ())
+    let fle = typed (triple float_const float_const bool_const) 14
+    let fless = typed (triple float_const float_const bool_const) 15
+    let feq = typed (triple float_const float_const bool_const) 16
+    let fgr = typed (triple float_const float_const bool_const) 17
+    let fge = typed (triple float_const float_const bool_const) 18
 
     (* prints *)
-    let print_int = typed (arr int_const unit_const) (third_next ())
-    let print_string = typed (arr string_const unit_const) (third_next ())
+    let print_int = typed (arr int_const unit_const) 19
+    let print_string = typed (arr string_const unit_const) 20
 
     let operators =
       [

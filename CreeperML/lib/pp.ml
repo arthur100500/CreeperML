@@ -15,7 +15,7 @@ module PrettyPrinter = struct
   let show_literal = function
     | LInt i -> Format.sprintf "%d" i
     | LFloat f -> Format.sprintf "%f" f
-    | LString s -> Format.sprintf "\"%s\"" s
+    | LString s -> Format.sprintf "%S" s
     | LBool b -> if b then "true" else "false"
     | LUnit -> "()"
 
@@ -128,9 +128,13 @@ module PrettyPrinter = struct
           List.map (fun x -> Format.sprintf "(%d%s)" x.value (st x.typ)) x.args
           |> String.concat " "
         in
+        let env =
+          List.map (fun x -> Format.sprintf "[%d%s]" x.value (st x.typ)) x.env
+          |> String.concat " "
+        in
         let lets = List.fold_left inner "" x.body.lets in
-        Format.sprintf "let (%d%s) %s = %s\n%s%s" name name_type args lets intd
-          (print_imm st x.body.res)
+        Format.sprintf "let (%d%s) %s %s = %s\n%s%s" name name_type env args
+          lets intd (print_imm st x.body.res)
 
   let print_anf_program print_type =
     let do_show_type t = ": " ^ show_ty t in

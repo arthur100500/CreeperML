@@ -2,7 +2,7 @@ open CreeperML
 open CreeperML.Parser_interface.ParserInterface
 open Infer.Infer
 open Type_ast.InferTypeUtils
-open Counter.Counter
+open Counter
 open Pp.PrettyPrinter
 open Indexed_ast.IndexedTypeAst
 open String
