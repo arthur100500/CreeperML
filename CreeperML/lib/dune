@@ -17,13 +17,13 @@
  (deps bindings.c)
  (targets bindings.co)
  (action
-  (run gcc -shared %{deps} -o %{targets})))
+  (run gcc -w -shared %{deps} -o %{targets})))
 
 (rule
  (deps bindings.c)
  (targets bindings.o)
  (action
-  (run gcc -c %{deps} -o %{targets} -w)))
+  (run gcc -w -c %{deps} -o %{targets} -w)))
 
 (library
  (name CreeperML)

@@ -6,7 +6,7 @@ module IndexedTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Position.Position
-  open Counter.Counter
+  open Counter
 
   type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
   type index_lvalue = (ilvalue, ty) typed
@@ -48,8 +48,7 @@ module IndexedTypeAst = struct
     | LvAny | LvUnit -> [ "any" ]
     | LvValue v -> [ v ]
     | LvTuple vs ->
-        List.map (fun x -> value x |> names_of_lvalue) vs
-        |> List.fold_left ( @ ) []
+        List.map (fun x -> value x |> names_of_lvalue) vs |> List.concat
 
   let rec index_lv (nm : nm) (l : lvalue) =
     match l with

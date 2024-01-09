@@ -31,6 +31,11 @@ extern void print_int(const int i)
     printf("%d\n", i);
 }
 
+extern void print_string_raw(const char *str)
+{
+    printf("%s\n", str);
+}
+
 extern void print_string(const strr *str)
 {
     int len = str->len;
@@ -121,8 +126,10 @@ cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
     for (int i = 0; i < clsr->argc; i++)
         clsr->argv[i] = clsr_argv[i];
 
+
     for (int i = clsr->argc; i < all_argc; i++)
         clsr->argv[i] = argv[i - clsr->argc];
+
 
     cmptr awaited = clsr->arity - clsr->argc;
     cmptr applied = min((int)argc, (int)awaited);
@@ -153,7 +160,6 @@ cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
 
 cmptr create_function(cmptr fn, cmptr argc, cmptr argv, cmptr arity, cmptr fn_id)
 {
-
     function *clsr = (function *)cm_malloc(sizeof(function));
     clsr->arity = arity; // Summary size of all arguments
     clsr->fn = fn;

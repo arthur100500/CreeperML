@@ -38,7 +38,7 @@ module AnfConvert = struct
   open AnfTypeAst
   open Type_ast.TypeAst
   open Closure.ClosureAst
-  open Counter.Counter
+  open Counter
 
   (* constructors *)
   let app l r = AApply (l, r)

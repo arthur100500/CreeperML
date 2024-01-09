@@ -14,18 +14,16 @@ module Compiler = struct
   let apply_anf_optimizations = Anf.AnfOptimizations.optimize_moves
   let apply_llvm = Codegen.Codegen.compile
 
-  let dmp_code file =
+  let cmp f =
     apply_parser >>= apply_infer >>| apply_db_renaming >>| apply_closure_convert
     >>| apply_anf_convert >>| apply_anf_optimizations
     |> function
-    | Ok x ->
-        Codegen.Codegen.top_lvl x |> fun _ -> Codegen.Codegen.dmp_code file
+    | Ok x -> f x
     | Error msg -> print_endline msg
 
-  let compile file =
-    apply_parser >>= apply_infer >>| apply_db_renaming >>| apply_closure_convert
-    >>| apply_anf_convert >>| apply_anf_optimizations
-    |> function
-    | Ok x -> apply_llvm x file
-    | Error msg -> print_endline msg
+  let dmp_code file =
+    cmp (fun x ->
+        Codegen.Codegen.top_lvl x |> fun _ -> Codegen.Codegen.dmp_code file)
+
+  let compile file = cmp (fun x -> apply_llvm x file)
 end

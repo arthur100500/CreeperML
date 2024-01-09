@@ -15,7 +15,7 @@ module PrettyPrinter = struct
   let show_literal = function
     | LInt i -> Format.sprintf "%d" i
     | LFloat f -> Format.sprintf "%f" f
-    | LString s -> Format.sprintf "\"%s\"" s
+    | LString s -> Format.sprintf "%S" s
     | LBool b -> if b then "true" else "false"
     | LUnit -> "()"
 

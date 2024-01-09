@@ -183,7 +183,7 @@ module InferUtils = struct
             return
               (t1.new_lvl <- min_lvl;
                t2.new_lvl <- min_lvl;
-               new_tuple ts) (* think about lvlv too *)
+               new_tuple ts)
       | TGround l_t, TGround r_t when l_t = r_t -> return t1
       | _ ->
           Printf.sprintf "cant unify %s\n at %s and\n %s at %s" (show_typ t1)
@@ -214,20 +214,19 @@ module InferUtils = struct
           let l = max (get_lvl l_t) (get_lvl r_t) in
           t.new_lvl <- l;
           t.old_lvl <- l;
-          return t (* new arrow? *)
+          return t
       | TTuple ts when t.new_lvl > !curr_lvl ->
           let l =
             List.fold_left
               (fun acc t ->
                 let t = repr t in
                 let _ = helper t in
-                (* maybe let* *)
                 get_lvl t |> max acc)
               0 ts
           in
           t.new_lvl <- l;
           t.old_lvl <- l;
-          return t (* too *)
+          return t
       | _ -> return t
     in
     force_lvls_update () *> helper t
@@ -341,7 +340,6 @@ module Infer = struct
     let ret_let { let_typ = _; let_ast = t } = t
   end
 
-  (* tower of fantasy *)
   let rec tof_expr env expr =
     let open ExprRet in
     let open LetRet in
@@ -357,14 +355,7 @@ module Infer = struct
           return { expr_typ; expr_ast }
         with Not_found -> Printf.sprintf "cant find name %s" n |> error)
     | ETuple es ->
-        let* es =
-          List.fold_right
-            (fun e acc ->
-              let* acc = acc in
-              let* e = tof_expr env e in
-              e :: acc |> return)
-            es (return [])
-        in
+        let* es = tof_expr env |> monadic_map es in
         List.map ret_typ es |> new_tuple |> fun expr_typ ->
         List.map ret_ast es |> t_tuple |> with_typ expr_typ |> fun expr_ast ->
         return { expr_typ; expr_ast }
@@ -381,7 +372,6 @@ module Infer = struct
                (return ([], env))
           >>| fun (let_ast, env) -> (List.rev let_ast, env)
         in
-        (* 375 WTF *)
         let* env = bind_lv_typ env n t_arg in
         let* t_body = f.body |> value |> expr_b |> tof_expr env in
         new_arrow t_arg t_body.expr_typ |> fun expr_typ ->
@@ -397,7 +387,6 @@ module Infer = struct
         in
         t_apply t_fun.expr_ast t_arg.expr_ast |> with_typ t_res
         |> fun expr_ast -> return { expr_typ = t_res; expr_ast }
-        (* also aslo *)
     | EIfElse { cond = c; t_body = t; f_body = f } ->
         let* t_c = tof_expr env c in
         let* _ =

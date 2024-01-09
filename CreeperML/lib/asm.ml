@@ -2,7 +2,6 @@ module Asm = struct
   open Anf.AnfTypeAst
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
-  open Counter
   open Std
 
   let reg_size = 16
