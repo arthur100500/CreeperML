@@ -1,6 +1,6 @@
  # CreeperML ![CI that doesn't work](https://github.com/tozarin/CreeperML/actions/workflows/build.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/Tozarin/CreeperML/badge.svg?branch=main)](https://coveralls.io/github/Tozarin/CreeperML?branch=main)
 
-<pre><span style="color:green"> ___     ___        _____                               __  __ _
+<pre><span style="color:lime"> ___     ___        _____                               __  __ _
 |   |   |   |      / ____|                             |  \/  | |
 |___|___|___|     | |     _ __ ___  ___ _ __   ___ _ __| \  / | |
    _|   |_        | |    | '__/ _ \/ _ \ '_ \ / _ \ '__| |\/| | |
@@ -23,4 +23,4 @@ CrepperML - лучший mini-ml язык на свете, поддержива�
 Разумеется у вас возникли вопросы, кто же эти Боги, написавшие это чудо инженерной мысли!
 
 - ![arthur100500](https://github.com/arthur100500/) - оптимизации, asm
-- ![Tozarin](https://github.com/Tozarin/) - парминг, вывод типов, llvm
+- ![Tozarin](https://github.com/Tozarin/) - парсинг, вывод типов, llvm
