@@ -1,5 +1,6 @@
 module Asm : sig
   open Anf.AnfTypeAst
+  open Monad.Result
 
   type reg = string
 
@@ -36,7 +37,7 @@ module Asm : sig
 
   type fn = { name : string; body : instruction list }
 
-  val compile : anf_program -> fn list
+  val compile : anf_program -> fn list t
 end
 
 module AsmRenderer : sig
