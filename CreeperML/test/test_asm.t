@@ -12,7 +12,7 @@
   >   helper n 1
   > let () = print_int (fac 5)
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   120
   $ cm_build/program
@@ -27,15 +27,19 @@
   > let () = print_int (1 + 5 + 3)
   > let () = print_int (1 * 5 - 2)
   > let () = print_int (3 * 9 - 2 + 4)
+  > let () = print_int (5 / 3)
+  > let () = print_int (5 / 3 + 6 / (2 - 1 + 7) / 2 * 3)
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
-  109329
+  10932911
   $ cm_build/program
   10
   9
   3
   29
+  1
+  1
 
 +-------------------------+
 |  Simple function calls  |
@@ -45,7 +49,7 @@
   > let id x = (id2 x) + (id2 (x + 1))
   > let () = print_int (id 5)
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   15
   $ cm_build/program
@@ -60,7 +64,7 @@
   > let f t = fac t (fun x -> x)
   > let () = print_int (f 7)
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   5040
   $ cm_build/program
@@ -75,7 +79,7 @@
   > let mul m n k = k (n * m)
   > let () = plus 1 2 (fun x -> mul 10 x print_int)   
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   30
   $ cm_build/program
@@ -90,7 +94,7 @@
   > let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
   > let () = fac 6 print_int   
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   720
   $ cm_build/program
@@ -108,7 +112,7 @@
   >  else ()
   > let () = repeat (fun n -> print_int (fib n)) 30   
   > EOF
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   1346269832040514229317811196418121393750254636828657177111094667654181258415979876103772331448955342113853211
   $ cm_build/program
@@ -153,7 +157,7 @@
   > let () = print_int a
   > let () = print_int b
   > let () = print_int c  
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   123
   $ cm_build/program
@@ -170,7 +174,7 @@
   > let (e, f) = add_pair (1, 2) (3, 4)
   > let () = print_int e
   > let () = print_int f   
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   46
   $ cm_build/program
@@ -190,7 +194,7 @@
   > add x 5 (fun x ->
   > forward (apply id x) print_int
   > ))
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   17
   $ cm_build/program
@@ -206,7 +210,7 @@
   > let p2 = p1 3 4
   > let p3 = p2 5 6
   > let () = print_int p3
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   21
   $ cm_build/program
@@ -219,8 +223,58 @@
   $ cat > input.ml <<- EOF
   > let f a b = let g c d = let h x y = let j z w = a + b + c + d + x + y + z + w in j in h in g
   > let () = print_int (f 1 2 3 4 5 6 7 8) 
-  $ cat input.ml | ./test_asm.exe
+  $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   36
   $ cm_build/program
   36
+
++-------------------------+
+|  Passing through stack  |
++-------------------------+
+  $ cat > input.ml <<- EOF
+  > let f rdi rsi rdx rcx r8 r9 stack1 stack2 stack3 = rdi + rsi + rdx + rcx + r8 + r9 + stack1 + stack2 + stack3
+  > let () = print_int (f 1 2 3 4 5 6 7 8 9)
+  $ cat input.ml | ./test_asm.exe > /dev/null
+  $ ocaml input.ml
+  45
+  $ cm_build/program
+  45
+
+
++------------------+
+|  Stolen CPS Fib  |
++------------------+
+  $ cat > input.ml <<- EOF
+  > let rec fib n k = if n <= 1 then k n else fib (n - 2) (fun a -> fib (n - 1) (fun b -> k (a + b)))
+  > let () = print_int (fib 8 (fun w -> w))
+  $ cat input.ml | ./test_asm.exe > /dev/null
+  $ ocaml input.ml
+  21
+  $ cm_build/program
+  21
+
+
++-----------------------+
+|  Test CreeperML logo  |
++-----------------------+
+  $ cat > input.ml <<- EOF
+  > let x = print_int
+  > let () = x 123
+  $ cat input.ml | ./test_asm.exe
+  
+     ___     ___        _____                               __  __ _
+    |   |   |   |      / ____|                             |  \/  | |
+    |___|___|___|     | |     _ __ ___  ___ _ __   ___ _ __| \  / | |
+       _|   |_        | |    | '__/ _ \/ _ \ '_ \ / _ \ '__| |\/| | |
+      |  ___  |       | |____| | |  __/  __/ |_) |  __/ |  | |  | | |____
+      |_|   |_|        \_____|_|  \___|\___| .__/ \___|_|  |_|  |_|______|
+                                           |_|
+  👌 Successful run
+  $ ocaml input.ml
+  123
+  $ cm_build/program
+  123
+
+
+

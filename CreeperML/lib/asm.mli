@@ -1,5 +1,6 @@
 module Asm : sig
   open Anf.AnfTypeAst
+  open Monad.Result
 
   type reg = string
 
@@ -16,6 +17,7 @@ module Asm : sig
     | Add of storage * storage
     | Sub of storage * storage
     | Imul of storage * storage
+    | Idiv of storage
     | Call of string
     | Push of storage
     | Pop of storage
@@ -31,10 +33,11 @@ module Asm : sig
     | Setl of storage
     | Sete of storage
     | Label of string (* bad *)
+    | Cqo
 
   type fn = { name : string; body : instruction list }
 
-  val compile : anf_program -> fn list
+  val compile : anf_program -> fn list t
 end
 
 module AsmRenderer : sig
