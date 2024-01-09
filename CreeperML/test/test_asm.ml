@@ -20,5 +20,5 @@ let () =
   |> function
   | Ok x ->
       Asm.compile x |> AsmOptimizer.optimize
-      |> Build.make_exe "../build.sh" " -l -d -b \"../../lib/bindings.o\""
+      |> Build.make_exe "../build.sh" " -d -b \"../../lib/bindings.o\""
   | Error x -> print_endline x
