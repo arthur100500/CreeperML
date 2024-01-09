@@ -26,17 +26,17 @@ typedef struct function_str
     cmptr fn_id;   // Id of function in asm code
 } function;
 
-extern void print_int(const int i)
+void print_int(const int i)
 {
     printf("%d\n", i);
 }
 
-extern void print_string_raw(const char *str)
+void print_string_raw(const char *str)
 {
     printf("%s\n", str);
 }
 
-extern void print_string(const strr *str)
+void print_string(const strr *str)
 {
     int len = str->len;
 
@@ -48,12 +48,12 @@ extern void print_string(const strr *str)
 
 cmptr create_function(cmptr fn, cmptr argc, cmptr argv, cmptr arity, cmptr fn_id);
 
-extern cmptr cm_malloc(size_t size)
+cmptr cm_malloc(size_t size)
 {
     return malloc(size);
 }
 
-extern cmptr call_n(function *closure)
+cmptr call_n(function *closure)
 {
     cmptr *a = closure->argv;
 
