@@ -24,3 +24,5 @@ CrepperML - лучший mini-ml язык на свете, поддержива�
 
 - ![arthur100500](https://github.com/arthur100500/) - оптимизации, asm
 - ![Tozarin](https://github.com/Tozarin/) - парсинг, вывод типов, llvm
+
+![Вся разработка в одном скриншоте](https://github.com/Tozarin/CreeperML/blob/dev/CreeperML/img/flashback.png)
