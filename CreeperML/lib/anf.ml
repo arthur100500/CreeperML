@@ -149,11 +149,11 @@ module AnfConvert = struct
     { name; args = arg_names; env = l.env_vars; body }
 
   let anf_of_cf (p : cf_typ_program) : anf_program =
-    let inner xs = function
-      | FunBinding fb -> xs @ [ AnfFun (anf_of_fun_binding fb) ]
-      | ValBinding vb -> xs @ (anf_of_let_binding vb |> List.map aval)
+    let inner = function
+      | FunBinding fb -> [ AnfFun (anf_of_fun_binding fb) ]
+      | ValBinding vb -> anf_of_let_binding vb |> List.map aval
     in
-    List.fold_left inner [] p
+    List.concat_map inner p
 end
 
 module AnfOptimizations = struct
