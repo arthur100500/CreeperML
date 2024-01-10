@@ -58,7 +58,7 @@ module PrettyPrinter = struct
             intd
             (List.map (fun x -> ValBinding x) x.cf_body.cf_lets)
         in
-        Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval (st x.l_v.typ) lets
+        Format.sprintf "%slet %s%s =%s\n%s  %s" intd lval (st x.l_v.typ) lets
           intd
           (print_cf_expr st x.cf_body.cf_expr)
     | FunBinding x ->
@@ -75,7 +75,7 @@ module PrettyPrinter = struct
               Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
             "" x.args
         in
-        Format.sprintf "%sletc %d%s%s = %s\n%s  %s" intd lval args
+        Format.sprintf "%sletc %d%s%s =%s\n%s  %s" intd lval args
           (st x.name.typ) lets intd
           (print_cf_expr st x.b.cf_expr)
 
@@ -133,8 +133,8 @@ module PrettyPrinter = struct
           |> String.concat " "
         in
         let lets = List.fold_left inner "" x.body.lets in
-        Format.sprintf "let (%d%s) %s %s = %s\n%s%s" name name_type env args
-          lets intd (print_imm st x.body.res)
+        Format.sprintf "let (%d%s) %s %s =%s\n%s%s" name name_type env args lets
+          intd (print_imm st x.body.res)
 
   let print_anf_program print_type =
     let do_show_type t = ": " ^ show_ty t in
