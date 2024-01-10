@@ -141,8 +141,7 @@ module AnfConvert = struct
       (arg_decs, arg_name)
     in
     let arg_decs, arg_names =
-      List.map inner2 l.args |> fun x ->
-      (List.concat (List.map fst x), List.map snd x)
+      List.map inner2 l.args |> fun x -> (List.concat_map fst x, List.map snd x)
     in
     let lets = arg_decs @ bindings @ expr_bindings in
     let body = { lets; res } in

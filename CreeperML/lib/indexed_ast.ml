@@ -47,8 +47,7 @@ module IndexedTypeAst = struct
     match l with
     | LvAny | LvUnit -> [ "any" ]
     | LvValue v -> [ v ]
-    | LvTuple vs ->
-        List.map (fun x -> value x |> names_of_lvalue) vs |> List.concat
+    | LvTuple vs -> List.concat_map (fun x -> value x |> names_of_lvalue) vs
 
   let rec index_lv (nm : nm) (l : lvalue) =
     match l with

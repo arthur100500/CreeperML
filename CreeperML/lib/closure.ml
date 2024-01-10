@@ -229,8 +229,9 @@ module ClosureConvert = struct
               in
               let typ_cf_val = CFValue cn |> typed e.typ in
               let f =
-                if env_lval = [] then typ_cf_val
-                else CFClosure (cn, env) |> typed e.typ
+                match env_lval with
+                | [] -> typ_cf_val
+                | _ -> CFClosure (cn, env) |> typed e.typ
               in
               (List.concat inner_closures @ expr_closures @ [ fun_let ], f)
         in
