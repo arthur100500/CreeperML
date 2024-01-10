@@ -175,12 +175,8 @@ module ClosureConvert = struct
     | DLiteral literal -> ([], CFLiteral literal |> typed e.typ)
     | DValue name -> ([], CFValue name |> typed e.typ)
     | DTuple exprs ->
-        let inner xs x =
-          let x_decs, x_res = cf_expr x in
-          (fst xs @ x_decs, snd xs @ [ x_res ])
-        in
-        let cf_exprs = List.fold_left inner ([], []) exprs in
-        (fst cf_exprs, CFTuple (snd cf_exprs) |> typed e.typ)
+        let bindings, cf_exprs = List.map cf_expr exprs |> List.split in
+        (bindings |> List.concat, CFTuple cf_exprs |> typed e.typ)
     | DIfElse ite ->
         let i_decs, i_expr = cf_expr ite.cond in
         let t_decs, t_expr = cf_expr ite.t_body in
@@ -191,14 +187,6 @@ module ClosureConvert = struct
         let res_typed = res |> typed e.typ in
         (i_decs @ t_decs @ e_decs, res_typed)
     | DFun f ->
-        (* let rec expr_of_lval l =
-             match (l.value, l.typ) with
-             | DLvValue v, _ -> CFValue v |> typed l.typ
-             | DLvTuple xs, TyTuple ts ->
-                 let xts = List.map2 typed ts xs in
-                 CFTuple (List.map expr_of_lval xts) |> typed l.typ
-             | _ -> CFLiteral LUnit |> typed l.typ
-           in *)
         let rec convert_fun f args =
           match (f.b.lets, f.b.expr.value) with
           | [], DFun f -> convert_fun f (args @ [ f.lvalue ])
@@ -283,9 +271,10 @@ module ClosureConvert = struct
           let binding = ValBinding binding in
           let u = NameSet.union in
           let g = typ_names_of_lvalue (h.l_v.value |> typed h.l_v.typ) |> u g in
-          acc @ closures @ [ binding ] |> inner g t
+          (closures, binding) :: acc |> inner g t
       | [] -> acc
     in
     let set = NameSet.of_list globals in
-    inner set prog [] |> remove_redefinitons
+    inner set prog [] |> List.split |> fun (closures, bindings) ->
+    List.concat closures @ bindings |> remove_redefinitons
 end
