@@ -6,9 +6,8 @@ module IndexedTypeAst = struct
   open Type_ast.TypeAst
   open Parser_ast.ParserAst
   open Position.Position
-  open Counter
 
-  type ilvalue = DLvAny | DLvUnit | DLvValue of int | DLvTuple of ilvalue list
+  type ilvalue = DLvAny | DLvUnit | DLvValue of string | DLvTuple of ilvalue list
   type index_lvalue = (ilvalue, ty) typed
 
   type index_let_binding = {
@@ -22,7 +21,7 @@ module IndexedTypeAst = struct
   and d_expr =
     | DApply of index_expr * index_expr
     | DLiteral of literal
-    | DValue of int
+    | DValue of string
     | DFun of index_fun_body
     | DTuple of index_expr list
     | DIfElse of tif_else
@@ -33,14 +32,17 @@ module IndexedTypeAst = struct
 
   type index_program = index_let_binding list
 
-  (* END AST, BEGIN TRANSLATE*)
-
   module NameMap = Map.Make (String)
 
   type nm = int NameMap.t
   type 'a res = 'a * nm
 
-  (* cons *)
+  let name_of original nm =
+    match NameMap.find_opt original nm with
+    | Some x ->
+        (Format.sprintf "u_%s_%d" original x, NameMap.add original (x + 1) nm)
+    | None -> (Format.sprintf "u_%s_%d" original 0, NameMap.add original 1 nm)
+
   let typed typ value : ('a, 'b) typed = { typ; value }
 
   let rec names_of_lvalue (l : lvalue) =
@@ -53,7 +55,7 @@ module IndexedTypeAst = struct
     match l with
     | LvAny -> DLvAny
     | LvUnit -> DLvUnit
-    | LvValue v -> DLvValue (NameMap.find v nm)
+    | LvValue v -> DLvValue (name_of v nm |> fst)
     | LvTuple vs ->
         List.map (fun x -> value x |> index_lv nm) vs |> fun x -> DLvTuple x
 
@@ -72,14 +74,14 @@ module IndexedTypeAst = struct
         let f_body = er in
         DIfElse { cond; t_body; f_body } |> typed e.typ
     | TLiteral l -> DLiteral l |> typed e.typ
-    | TValue v -> NameMap.find v nm |> fun x -> DValue x |> typed e.typ
+    | TValue v -> name_of v nm |> fst |> fun x -> DValue x |> typed e.typ
     | TTuple vs ->
         List.map (index_expr nm) vs |> fun x -> DTuple x |> typed e.typ
     | TFun f ->
         let all_names = names_of_lvalue f.lvalue.value in
         let nm =
           List.fold_left
-            (fun nm n -> NameMap.add n (cnt_next ()) nm)
+            (fun nm n -> name_of n nm |> snd)
             nm all_names
         in
         let lets, nm_inners =
@@ -102,7 +104,7 @@ module IndexedTypeAst = struct
       match l.rec_f with
       | Rec ->
           List.fold_left
-            (fun nm n -> NameMap.add n (cnt_next ()) nm)
+            (fun nm n -> name_of n nm |> snd)
             nm all_names
       | NoRec -> nm
     in
@@ -121,7 +123,7 @@ module IndexedTypeAst = struct
       | Rec -> nm
       | NoRec ->
           List.fold_left
-            (fun nm n -> NameMap.add n (cnt_next ()) nm)
+            (fun nm n -> name_of n nm |> snd)
             nm all_names
     in
     let l_v = index_lv nm l.l_v.value |> typed l.l_v.typ in

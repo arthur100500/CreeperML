@@ -9,7 +9,7 @@ module IndexedTypeAst : sig
   type ilvalue =
     | DLvAny  (** lvalue _ *)
     | DLvUnit  (** lvalue () *)
-    | DLvValue of int  (** lvalue like a *)
+    | DLvValue of string  (** lvalue like a *)
     | DLvTuple of ilvalue list  (** lvalue like (lvalue, lvalue, ...) *)
 
   type index_lvalue = (ilvalue, ty) typed
@@ -25,7 +25,7 @@ module IndexedTypeAst : sig
   and d_expr =
     | DApply of index_expr * index_expr  (** index expr like (expr) (expr) *)
     | DLiteral of literal  (** index expr like 123/"abc"/true/false/... *)
-    | DValue of int  (** index expr like a/b/c *)
+    | DValue of string  (** index expr like a/b/c *)
     | DFun of index_fun_body  (** index expr like fun arg -> ... *)
     | DTuple of index_expr list  (** index expr like (a, b, c) *)
     | DIfElse of tif_else  (** index expr like if a then b else c *)

@@ -33,17 +33,17 @@ module PrettyPrinter = struct
         let e = ite.f_body in
         Format.sprintf "if %s then %s else %s" (print_cf_expr st i)
           (print_cf_expr st t) (print_cf_expr st e)
-    | CFValue v -> Format.sprintf "v%d" v
+    | CFValue v -> Format.sprintf "v%s" v
     | CFLiteral l -> show_literal l
     | CFClosure (i, env) ->
         let env =
           String.concat ", "
-          @@ List.map (fun x -> Format.sprintf "%d" x.value) env
+          @@ List.map (fun x -> Format.sprintf "%s" x.value) env
         in
-        Format.sprintf "clsr[%d][%s]" i env
+        Format.sprintf "clsr[%s][%s]" i env
 
   let rec print_lval = function
-    | DLvValue v -> Format.sprintf "%d" v
+    | DLvValue v -> Format.sprintf "%s" v
     | DLvAny -> "any"
     | DLvUnit -> "()"
     | DLvTuple xs ->
@@ -75,7 +75,7 @@ module PrettyPrinter = struct
               Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
             "" x.args
         in
-        Format.sprintf "%sletc %d%s%s =%s\n%s  %s" intd lval args
+        Format.sprintf "%sletc %s%s%s =%s\n%s  %s" intd lval args
           (st x.name.typ) lets intd
           (print_cf_expr st x.b.cf_expr)
 
@@ -85,12 +85,11 @@ module PrettyPrinter = struct
     let st = if print_type then do_show_type else dont_show_type in
     List.map (print_cf_dec st "") program |> String.concat "\n\n"
 
-
   (********************************************************
                        Pretty print ANF AST
     ********************************************************)
   let print_imm st = function
-    | ImmVal x -> Format.sprintf "v(%d%s)" x.value (st x.typ)
+    | ImmVal x -> Format.sprintf "v(%s%s)" x.value (st x.typ)
     | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
 
   let rec print_body st intd (b : anf_body) =
@@ -153,7 +152,7 @@ module PrettyPrinter = struct
           (print_index_expr st intd l)
           (print_index_expr st intd r)
     | DLiteral l -> show_literal l
-    | DValue v -> Format.sprintf "v%d" v
+    | DValue v -> Format.sprintf "v%s" v
     | DFun fn ->
         let lval = print_lval fn.lvalue.value in
         let lets =
