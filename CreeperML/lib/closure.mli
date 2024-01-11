@@ -51,8 +51,7 @@ end
 
 module ClosureConvert : sig
   open ClosureAst
-  open Type_ast.TypeAst
   open Indexed_ast.IndexedTypeAst
 
-  val cf_of_index : (string, ty) typed list -> index_program -> cf_typ_program
+  val cf_of_index : index_program -> cf_typ_program
 end

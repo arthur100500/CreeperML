@@ -33,7 +33,7 @@ module PrettyPrinter = struct
         let e = ite.f_body in
         Format.sprintf "if %s then %s else %s" (print_cf_expr st i)
           (print_cf_expr st t) (print_cf_expr st e)
-    | CFValue v -> Format.sprintf "v%s" v
+    | CFValue v -> Format.sprintf "%s" v
     | CFLiteral l -> show_literal l
     | CFClosure (i, env) ->
         let env =
@@ -89,8 +89,8 @@ module PrettyPrinter = struct
                        Pretty print ANF AST
     ********************************************************)
   let print_imm st = function
-    | ImmVal x -> Format.sprintf "v(%s%s)" x.value (st x.typ)
-    | ImmLit x -> Format.sprintf "l(%s%s)" (show_literal x.value) (st x.typ)
+    | ImmVal x -> Format.sprintf "%s%s" x.value (st x.typ)
+    | ImmLit x -> Format.sprintf "%s%s" (show_literal x.value) (st x.typ)
 
   let rec print_body st intd (b : anf_body) =
     let inner xs x = xs ^ "\n" ^ print_anf_dec st (intd ^ "  ") (AnfVal x) in
@@ -114,26 +114,26 @@ module PrettyPrinter = struct
     | AImm i -> print_imm st i
     | AClosure (i, env) ->
         let env = String.concat ", " @@ List.map (print_imm st) env in
-        Format.sprintf "clsr[v(%d%s)][%s]" i.value (st i.typ) env
+        Format.sprintf "clsr[%s%s][%s]" i.value (st i.typ) env
 
   and print_anf_dec st intd = function
     | AnfVal x ->
-        Format.sprintf "%slet (%d%s) = %s" intd x.name.value (st x.name.typ)
+        Format.sprintf "%slet (%s%s) = %s" intd x.name.value (st x.name.typ)
           (print_anf_expr st intd x.e)
     | AnfFun x ->
         let intd = intd ^ "  " in
         let inner xs x = xs ^ "\n" ^ print_anf_dec st intd (AnfVal x) in
         let name, name_type = (x.name.value, st x.name.typ) in
         let args =
-          List.map (fun x -> Format.sprintf "(%d%s)" x.value (st x.typ)) x.args
+          List.map (fun x -> Format.sprintf "(%s%s)" x.value (st x.typ)) x.args
           |> String.concat " "
         in
         let env =
-          List.map (fun x -> Format.sprintf "[%d%s]" x.value (st x.typ)) x.env
+          List.map (fun x -> Format.sprintf "[%s%s]" x.value (st x.typ)) x.env
           |> String.concat " "
         in
         let lets = List.fold_left inner "" x.body.lets in
-        Format.sprintf "let (%d%s) %s %s =%s\n%s%s" name name_type env args lets
+        Format.sprintf "let (%s%s) %s %s =%s\n%s%s" name name_type env args lets
           intd (print_imm st x.body.res)
 
   let print_anf_program print_type program =
@@ -152,7 +152,7 @@ module PrettyPrinter = struct
           (print_index_expr st intd l)
           (print_index_expr st intd r)
     | DLiteral l -> show_literal l
-    | DValue v -> Format.sprintf "v%s" v
+    | DValue v -> Format.sprintf "%s" v
     | DFun fn ->
         let lval = print_lval fn.lvalue.value in
         let lets =

@@ -55,6 +55,7 @@ module ClosureConvert = struct
   open Parser_ast.ParserAst
   open Indexed_ast.IndexedTypeAst
   open State
+  open Std
 
   module TypedName = struct
     type t = (string, ty) typed
@@ -238,7 +239,7 @@ module ClosureConvert = struct
     in
     let let_name = fst_typ_name_of_lvalue l.l_v in
     let* closures, cf_expr =
-      closure_free_expr globals is_rec let_name.value l.body.expr
+      closure_free_expr globals is_rec ("l" ^ let_name.value) l.body.expr
     in
     let* _, inner_closures, rev_binds =
       monadic_fold
@@ -265,7 +266,7 @@ module ClosureConvert = struct
     let cf_let_binding = { rec_f; l_v; cf_body = cf_let_body } in
     return (inner_closures @ closures, cf_let_binding)
 
-  and cf_of_index globals prog =
+  and cf_of_index prog =
     let rec inner g (p : index_program) acc =
       match p with
       | h :: t ->
@@ -277,7 +278,7 @@ module ClosureConvert = struct
           (closures, binding) :: acc |> inner g t
       | [] -> return acc
     in
-    let set = NameSet.of_list globals in
+    let set = Std.operators |> List.to_seq |> NameSet.of_seq in
     inner set prog [] |> run |> List.split |> fun (closures, bindings) ->
-    List.concat closures @ bindings |> remove_redefinitons
+    List.concat closures @ List.rev bindings |> remove_redefinitons
 end

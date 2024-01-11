@@ -36,13 +36,5 @@ module IndexedTypeAst : sig
 
   type index_program = index_let_binding list
 
-  module NameMap : sig
-    type key = string
-    type 'a t = 'a Map.Make(String).t
-
-    val empty : 'a t
-    val add : key -> 'a -> 'a t -> 'a t
-  end
-
-  val index_of_typed : int NameMap.t -> ty typ_program -> index_program
+  val index_of_typed : ty typ_program -> index_program
 end
