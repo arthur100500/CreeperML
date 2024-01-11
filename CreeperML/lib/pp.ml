@@ -58,7 +58,7 @@ module PrettyPrinter = struct
             intd
             (List.map (fun x -> ValBinding x) x.cf_body.cf_lets)
         in
-        Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval (st x.l_v.typ) lets
+        Format.sprintf "%slet %s%s =%s\n%s  %s" intd lval (st x.l_v.typ) lets
           intd
           (print_cf_expr st x.cf_body.cf_expr)
     | FunBinding x ->
@@ -75,15 +75,16 @@ module PrettyPrinter = struct
               Format.sprintf "%s (%s%s)" xs (print_lval x.value) (st x.typ))
             "" x.args
         in
-        Format.sprintf "%sletc %d%s%s = %s\n%s  %s" intd lval args
+        Format.sprintf "%sletc %d%s%s =%s\n%s  %s" intd lval args
           (st x.name.typ) lets intd
           (print_cf_expr st x.b.cf_expr)
 
-  let print_cf_program print_type =
+  let print_cf_program print_type program =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
-    List.fold_left (fun xs x -> (xs ^ print_cf_dec st "" x) ^ "\n\n") ""
+    List.map (print_cf_dec st "") program |> String.concat "\n\n"
+
 
   (********************************************************
                        Pretty print ANF AST
@@ -133,15 +134,14 @@ module PrettyPrinter = struct
           |> String.concat " "
         in
         let lets = List.fold_left inner "" x.body.lets in
-        Format.sprintf "let (%d%s) %s %s = %s\n%s%s" name name_type env args
-          lets intd (print_imm st x.body.res)
+        Format.sprintf "let (%d%s) %s %s =%s\n%s%s" name name_type env args lets
+          intd (print_imm st x.body.res)
 
-  let print_anf_program print_type =
+  let print_anf_program print_type program =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
-    let inner xs x = Format.sprintf "%s\n%s\n" xs (print_anf_dec st "" x) in
-    List.fold_left inner ""
+    List.map (print_anf_dec st "") program |> String.concat "\n\n"
 
   (********************************************************
                         Pretty print DB AST
@@ -184,14 +184,11 @@ module PrettyPrinter = struct
     let t = st x.l_v.typ in
     Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval t lets intd expr
 
-  let print_index_program print_type =
+  let print_index_program print_type program =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
-    let inner xs x =
-      Format.sprintf "%s\n%s\n" xs (print_index_let_binding st "" x)
-    in
-    List.fold_left inner ""
+    List.map (print_index_let_binding st "") program |> String.concat "\n\n"
 
   (********************************************************
                         Pretty print Typed AST
@@ -241,12 +238,9 @@ module PrettyPrinter = struct
     let t = st x.l_v.typ in
     Format.sprintf "%slet %s%s = %s\n%s  %s" intd lval t lets intd expr
 
-  let print_typ_program print_type =
+  let print_typ_program print_type program =
     let do_show_type t = ": " ^ show_ty t in
     let dont_show_type _ = "" in
     let st = if print_type then do_show_type else dont_show_type in
-    let inner xs x =
-      Format.sprintf "%s\n%s\n" xs (print_typ_let_binding st "" x)
-    in
-    List.fold_left inner ""
+    List.map (print_typ_let_binding st "") program |> String.concat "\n\n"
 end
