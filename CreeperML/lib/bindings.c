@@ -118,7 +118,6 @@ cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
 
     function *clsr_old = clsr;
     clsr = (function *)create_function((cmptr)clsr_old->fn, clsr_old->argc, (cmptr)clsr_old->argv, clsr_old->arity, clsr_old->fn_id);
-
     cmptr all_argc = clsr->argc + argc;
 
     // Merge arguments
@@ -129,10 +128,8 @@ cmptr apply_args(function *clsr, cmptr argc, cmptr *argv)
     for (int i = 0; i < clsr->argc; i++)
         clsr->argv[i] = clsr_argv[i];
 
-
     for (int i = clsr->argc; i < all_argc; i++)
         clsr->argv[i] = argv[i - clsr->argc];
-
 
     cmptr awaited = clsr->arity - clsr->argc;
     cmptr applied = min((int)argc, (int)awaited);
@@ -166,7 +163,7 @@ cmptr create_function(cmptr fn, cmptr argc, cmptr argv, cmptr arity, cmptr fn_id
     function *clsr = (function *)cm_malloc(sizeof(function));
     clsr->arity = arity; // Summary size of all arguments
     clsr->fn = (cmptr(*)())fn;
-    clsr->argv = (cmptr*)argv;
+    clsr->argv = (cmptr *)argv;
     clsr->argc = argc;
     clsr->fn_id = fn_id;
 
