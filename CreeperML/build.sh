@@ -24,7 +24,7 @@ then
   echo "Compiling program..."
 fi
 
-nasm -f elf64 program.asm -o program.o # 1> /dev/null 2> /dev/null
+nasm -f elf64 program.asm -o program.o 1> /dev/null 2> /dev/null
 if [[ $? -ne 0 ]]
 then
   echo -e "${RED}Error compiling program"
@@ -37,7 +37,7 @@ then
   echo "Linking program..."
 fi
 
-gcc $BINDINGS program.o -o program # 1> /dev/null 2> /dev/null
+gcc $BINDINGS program.o -o program 1> /dev/null 2> /dev/null
 if [[ $? -ne 0 ]]
 then
   echo -e "${RED}Error linking stuff"
