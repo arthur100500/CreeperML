@@ -261,6 +261,7 @@
   $ cat > input.ml <<- EOF
   > let x = print_int
   > let () = x 123
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe
   
      ___     ___        _____                               __  __ _
