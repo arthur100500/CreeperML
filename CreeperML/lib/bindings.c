@@ -26,6 +26,11 @@ typedef struct function_str
     cmptr fn_id;   // Id of function in asm code
 } function;
 
+extern void print_int(const int i)
+{
+    printf("%d\n", i);
+}
+
 extern void bin_print_int(const int i)
 {
     printf("%d\n", i);
