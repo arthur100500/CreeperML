@@ -12,6 +12,7 @@
   >   helper n 1
   > let () = print_int (fac 5)
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   120
@@ -30,6 +31,7 @@
   > let () = print_int (5 / 3)
   > let () = print_int (5 / 3 + 6 / (2 - 1 + 7) / 2 * 3)
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   10932911
@@ -49,6 +51,7 @@
   > let id x = (id2 x) + (id2 (x + 1))
   > let () = print_int (id 5)
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   15
@@ -64,6 +67,7 @@
   > let f t = fac t (fun x -> x)
   > let () = print_int (f 7)
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   5040
@@ -79,6 +83,7 @@
   > let mul m n k = k (n * m)
   > let () = plus 1 2 (fun x -> mul 10 x print_int)   
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   30
@@ -94,6 +99,7 @@
   > let rec fac n k = if n <= 1 then k n else fac (n - 1) (fun m -> k (m * n))
   > let () = fac 6 print_int   
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   720
@@ -112,6 +118,7 @@
   >  else ()
   > let () = repeat (fun n -> print_int (fib n)) 30   
   > EOF
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   1346269832040514229317811196418121393750254636828657177111094667654181258415979876103772331448955342113853211
@@ -157,6 +164,7 @@
   > let () = print_int a
   > let () = print_int b
   > let () = print_int c  
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   123
@@ -174,6 +182,7 @@
   > let (e, f) = add_pair (1, 2) (3, 4)
   > let () = print_int e
   > let () = print_int f   
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   46
@@ -194,6 +203,7 @@
   > add x 5 (fun x ->
   > forward (apply id x) print_int
   > ))
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   17
@@ -210,6 +220,7 @@
   > let p2 = p1 3 4
   > let p3 = p2 5 6
   > let () = print_int p3
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   21
@@ -223,6 +234,7 @@
   $ cat > input.ml <<- EOF
   > let f a b = let g c d = let h x y = let j z w = a + b + c + d + x + y + z + w in j in h in g
   > let () = print_int (f 1 2 3 4 5 6 7 8) 
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   36
@@ -235,6 +247,7 @@
   $ cat > input.ml <<- EOF
   > let f rdi rsi rdx rcx r8 r9 stack1 stack2 stack3 = rdi + rsi + rdx + rcx + r8 + r9 + stack1 + stack2 + stack3
   > let () = print_int (f 1 2 3 4 5 6 7 8 9)
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   45
@@ -248,6 +261,7 @@
   $ cat > input.ml <<- EOF
   > let rec fib n k = if n <= 1 then k n else fib (n - 2) (fun a -> fib (n - 1) (fun b -> k (a + b)))
   > let () = print_int (fib 8 (fun w -> w))
+  $ chmod +x ../build.sh
   $ cat input.ml | ./test_asm.exe > /dev/null
   $ ocaml input.ml
   21
