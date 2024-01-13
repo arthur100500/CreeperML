@@ -162,9 +162,10 @@ module Asm = struct
     | "/" -> return [ mov rax rdi; cqo; idiv rsi ] (* / *)
     | "<=" -> return [ cmp rdi rsi; setle al; movzx eax al ] (* <= *)
     | "<" -> return [ cmp rdi rsi; setl al; movzx eax al ] (* < *)
-    | "==" -> return [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
+    | "=" -> return [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
     | ">" -> return [ cmp rdi rsi; setg al; movzx eax al ] (* > *)
     | ">=" -> return [ cmp rdi rsi; setge al; movzx eax al ] (* >= *)
+    | "print_int" -> [ call "bin_print_int" ] >>> stack_fix |> return
     | x when String.ends_with ~suffix:"." x ->
         error "Compiler error: Float point functions not done"
     | other -> [ call other ] >>> stack_fix |> return
@@ -190,9 +191,11 @@ module Asm = struct
         | None -> error "Compiler error: Could not find variable in memory")
     | ImmLit l -> int_of_literal l >>| ic
 
+  let rename_fn name = match name with "print_int" -> "bin_print_int" | e -> e
+
   let alloc_closure cinfo fn args =
     let arity = SMap.find fn.value cinfo.arities in
-    let fn_name = fn.value in
+    let fn_name = rename_fn fn.value in
     let load_size = mov rdi (arity * ptr_size |> ic) in
     let create_env_ptr = [ call "cm_malloc"; mov r12 rax ] in
     let inner i arg =
@@ -388,7 +391,7 @@ module AsmRenderer = struct
 
   let header =
     {|
-extern print_int
+extern bin_print_int
 extern print_string
 extern create_function
 extern apply_args

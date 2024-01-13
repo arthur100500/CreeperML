@@ -31,11 +31,6 @@ void bin_print_int(const int i)
     printf("%d\n", i);
 }
 
-void print_int(const int i)
-{
-    printf("%d\n", i);
-}
-
 void print_string_raw(const char *str)
 {
     printf("%s\n", str);
