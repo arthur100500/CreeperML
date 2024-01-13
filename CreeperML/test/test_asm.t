@@ -290,3 +290,27 @@
   123
   $ cm_build/program
   123
+
+
+  $ cat > input.ml <<- EOF
+  > let rec fix f x = f (fix f) x
+  > let map f p = let (a,b) = p in (f a, f b)
+  > let fixpoly l =
+  > fix (fun self l -> map (fun li x -> li (self l) x) l) l
+  > let feven p n =
+  > let (e, o) = p in
+  > if n == 0 then 1 else o (n - 1)
+  > let fodd p n =
+  > let (e, o) = p in
+  > if n == 0 then 0 else e (n - 1)
+  > let tie = fixpoly (feven, fodd)
+  > let () =
+  > let (even,odd) = tie in
+  > print_int (odd 1)
+  > EOF
+  $ chmod +x ../build.sh
+  $ cat input.ml | ./test_asm.exe > /dev/null
+  $ cm_build/program
+  1
+  $ ocaml input.ml
+  1

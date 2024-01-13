@@ -162,7 +162,7 @@ module Asm = struct
     | "/" -> return [ mov rax rdi; cqo; idiv rsi ] (* / *)
     | "<=" -> return [ cmp rdi rsi; setle al; movzx eax al ] (* <= *)
     | "<" -> return [ cmp rdi rsi; setl al; movzx eax al ] (* < *)
-    | "=" -> return [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
+    | "==" -> return [ cmp rdi rsi; sete al; movzx eax al ] (* == *)
     | ">" -> return [ cmp rdi rsi; setg al; movzx eax al ] (* > *)
     | ">=" -> return [ cmp rdi rsi; setge al; movzx eax al ] (* >= *)
     | "print_int" -> [ call "bin_print_int" ] >>> stack_fix |> return
